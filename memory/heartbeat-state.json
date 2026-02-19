@@ -1,0 +1,12 @@
+{
+  "lastChecks": {
+    "heartbeat": 1771543140000,
+    "activeAgent": "none",
+    "openIssues": 0,
+    "cronJobs": {
+      "crypto:prices": "active (every 5min)",
+      "crypto:news": "active (every 15min)",
+      "crypto:briefing-v2": "active (09:00 CET)"
+    }
+  }
+}
