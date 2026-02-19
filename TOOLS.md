@@ -49,7 +49,6 @@ Add whatever helps you do your job. This is your cheat sheet.
 - **Tavily:** Aktiv ✅
   - Usage: `node skills/tavily-search/scripts/search.mjs "query" -n 5`
   - API Key liegt in `~/.openclaw/credentials/.env`
-- **Brave:** Installiert ✅ (API Key benötigt)
+- **Brave:** Aktiv ✅
   - Usage: `node skills/brave-search/scripts/search.mjs "query" -n 5`
-  - Get key from: https://brave.com/search/api/
-  - Add to `~/.openclaw/credentials/.env`: `BRAVE_API_KEY=your_key`
+  - API Key: `BRAVE_SEARCH_API_KEY` in `~/.openclaw/credentials/.env`

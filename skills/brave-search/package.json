@@ -1,0 +1,12 @@
+{
+  "name": "brave-search",
+  "version": "0.1.0",
+  "description": "Brave Search API client",
+  "type": "module",
+  "scripts": {
+    "search": "node scripts/search.mjs"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.0"
+  }
+}
