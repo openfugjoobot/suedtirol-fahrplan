@@ -1,0 +1,10 @@
+
+# OpenClaw internal files
+/.openclaw/
+/.clawhub/
+**/.openclaw/
+**/.clawhub/
+
+# Skills with own repos
+/skills/crypto/
+/skills/*/node_modules/

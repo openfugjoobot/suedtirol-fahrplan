@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "skills": {
+    "github": {
+      "version": "1.0.0",
+      "installedAt": 1771487048749
+    },
+    "blogwatcher": {
+      "version": "1.0.0",
+      "installedAt": 1771487050405
+    },
+    "weather": {
+      "version": "1.0.0",
+      "installedAt": 1771487051957
+    },
+    "gog": {
+      "version": "1.0.0",
+      "installedAt": 1771487054771
+    },
+    "tavily-search": {
+      "version": "1.0.0",
+      "installedAt": 1771487896801
+    }
+  }
+}
