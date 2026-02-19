@@ -30,10 +30,13 @@ _8-Agent-Team mit GitHub Projects Integration. Ein Repo = Ein Project._
 | **DocsAgent** | Dokumentation | `workspace-docs` | 6 |
 | **DevOpsAgent** | CI/CD, Deploy | `workspace-devops` | 7 |
 
-**⚠️ Workspace-Regeln:**
-- Nur diese 8 Workspaces sind gültig
+**⚠️ Workspace-Regeln (KRITISCH):**
+- **NUR in `.openclaw/workspace-*` entwickeln** – nie in Home, /tmp, oder außerhalb
+- **Projekt-Code gehört ins ` workspace/` (Main) oder Agent-Workspace**
+- Agenten dürfen **NIE** in fremde Workspaces schreiben
 - `workspace-*-agent` (mit Suffix) = temporär → ignorieren/löschen
-- Agenten arbeiten nur in ihrem Workspace
+- **GitHub ist Source of Truth** – lokale Änderungen müssen sofort gepusht werden
+- Nach Agent-Completion: `git status` prüfen ob alle Files committed wurden
 
 ---
 
@@ -79,19 +82,39 @@ openfugjoobot/
 - **Custom Fields:** Priority, Size, Sprint, Agent
 - **Automatisierung:** Issue opened → Backlog | PR opened → In Review | PR merged → Done
 
-### Branching & PR
+### Branching, PR & Merge Prozess (KRITISCH)
+
+**Agenten dürfen NIEMALS direkt auf main pushen!**
+
 ```
 main (protected)
   ↑
-  ├── feature/xyz    # Feature-Branches
-  └── hotfix/xyz     # Emergency fixes
+  feature/issue-#-description  ← Agent erstellt Branch
+  ↑
+  git push -u origin feature/...  ← Agent pusht Branch
+  ↑
+  gh pr create --title "..."     ← Agent erstellt PR
+  ↑
+  Code Review (QAAgent/DevOrchestrator)
+  ↑
+  gh pr merge --squash           ← DevOrchestrator merged
+  ↑
+  git branch -d feature/...      ← Branch löschen
 ```
 
-**Regeln:**
-- Keine direkten Commits auf `main`
-- Jeder PR braucht 1 Approval (QAAgent)
-- CI muss grün sein
-- Nach Merge: Branch löschen
+**Pflicht-Schritte für Agents:**
+1. `git checkout -b feature/issue-#-description` (von main)
+2. Code implementieren + testen
+3. `git add -A && git commit -m "feat: ..."`
+4. `git push -u origin feature/issue-#-description`
+5. `gh pr create --title "type: description" --body "Closes #issue"`
+6. **Warten auf Review** – nicht selbst mergen!
+
+**DevOrchestrator merged nach:**
+- ✅ Review durch QAAgent oder sich selbst
+- ✅ Alle Tests grün
+- ✅ Keine Konflikte
+- ✅ PR Beschreibung vollständig
 
 ---
 
@@ -156,7 +179,69 @@ GITHUB_TOKEN              # API-Zugriff (falls nötig)
 
 ---
 
-## 🔄 Kontinuierliche Überwachung (24/7)
+## 🩺 Agent Health Checks (NEU)
+
+**Nach JEDER Agent-Completion:**
+
+### 1. Output Verification
+```bash
+# Prüfe ob Agent tatsächlich geliefert hat
+git status  # Zeigt uncommitted changes
+git log --oneline -3  # Letzte Commits anzeigen
+git branch -a  # Zeigt alle Branches
+gh pr list  # Zeigt offene PRs
+```
+
+### 2. File Existence Check
+```bash
+# Agent behauptet er hat X erstellt – prüfen!
+ls -la src/bot/commands.js 2>/dev/null || echo "❌ FEHLEND!"
+ls -la specs/architecture.md 2>/dev/null || echo "❌ FEHLEND!"
+```
+
+### 3. PR Verification
+```bash
+# PR muss existieren und offen sein
+gh pr view <nummer>  # PR Details prüfen
+gh pr diff <nummer>  # Änderungen ansehen
+```
+
+### 4. Heartbeat: "Hat der Agent überhaupt etwas getan?"
+- **Wenn Output leer** → Agent neu spawnen
+- **Wenn Files fehlen** → Manuell nachholen
+- **Wenn PR nicht erstellt** → `gh pr create` ausführen
+
+**Red Flags:**
+- ❌ Agent sagt "Fertig" aber `git status` zeigt nichts
+- ❌ Kein Branch im Repo
+- ❌ Kein PR auf GitHub
+- ❌ Files fehlen trotz "Erfolg"
+
+---
+
+## 🔄 GitHub = Source of Truth (KRITISCH)
+
+**Wahrheit lebt auf GitHub, nicht lokal!**
+
+| Was | Wo | Warum |
+|-----|-----|-------|
+| **Code** | GitHub Repo | Andere Agents brauchen Zugriff |
+| **Issues** | GitHub Issues | Tracking und Zuordnung |
+| **Doku** | GitHub README/specs | Zentrale Quelle |
+| **Planning** | GitHub Projects | Status-Übersicht |
+
+**Regeln:**
+- ✅ Code sofort pushen (`git push` nach jedem Commit)
+- ✅ Issues sofort schließen (`gh issue close #n`)
+- ✅ PRs sofort erstellen (`gh pr create`)
+- ✅ Nie lokal hoarden ("ich committe später")
+- ❌ Keine "fast fertig" Branches auf dem Rechner
+
+**Nach Agent-Completion Pflicht:**
+1. `git push` – Code auf GitHub?
+2. `gh pr list` – PR existiert?
+3. `gh issue list` – Issues aktualisiert?
+4. `du -sh ~/.openclaw/workspace-*` – Nichts vergessen?
 
 **Kontinuierliche Checks:**
 1. 🚫 Blocked Tickets (>2h keine Aktivität)
@@ -220,6 +305,71 @@ GITHUB_TOKEN              # API-Zugriff (falls nötig)
 
 ---
 
+## 💡 Lessons Learned aus suedtirol-events (NEU)
+
+### Common Pitfalls & Fixes
+
+#### 1. Circular Dependencies (KRITISCH)
+**Problem:**
+```javascript
+// repositories/index.js
+const EventRepository = require('./events');
+module.exports = { EventRepository };
+
+// repositories/events.js
+const { getDatabase } = require('./index'); // ❌ Zirkel!
+```
+
+**Lösung:**
+```javascript
+// repositories/events.js
+const { getDatabase } = require('../connection'); // ✅ Eigene Datei
+```
+
+**Prävention:**
+- Separate `connection.js` für Database-Singleton
+- Keine require() Loops zwischen Dateien
+- Repositories dürfen nicht auf `./index` dependen
+
+#### 2. Agent Output Verification
+**Was schiefgelaufen ist:**
+- Agent meldet "Erfolg" aber keine Files auf Disk
+- Code im falschen Verzeichnis (~/repos/ statt ~/.openclaw/)
+- PR nicht erstellt trotz "Fertig"
+
+**Fix:**
+```bash
+# Nach Agent immer:
+subagents list  # Status prüfen
+ls -la src/     # Files existieren?
+git status      # Änderungen da?
+gh pr list      # PR erstellt?
+```
+
+#### 3. Pfad-Probleme
+**Falsch:**
+```javascript
+const logger = require('../utils/logger'); // ❌ aus src/db/repositories/
+const db = require('./index').getDatabase(); // ❌ Zirkel
+```
+
+**Richtig:**
+```javascript
+const logger = require('../../utils/logger'); // ✅ Relativ zur Datei
+const { getDatabase } = require('../connection'); // ✅ Separate Modul
+```
+
+#### 4. Telegram Bot Konflikt
+**Problem:** Token 409 Conflict (bereits in Verwendung)  
+**Lösung:** Integration in OpenClaw Session statt separatem Prozess  
+**Outcome:** Ich bin jetzt der Bot – Commands funktionieren über Chat
+
+#### 5. Database Connection
+**Problem:** Mehrere connection-Instanzen, WAL-Mode Fehler  
+**Fix:** Singleton Pattern in `connection.js`, alle Repositories nutzen diese
+
+---
+
 ## 🚀 Setup Checklist
 
 - [ ] **Skills prüfen:** Vorhandene Tools in `skills/` und `TOOLS.md` suchen
@@ -235,9 +385,10 @@ GITHUB_TOKEN              # API-Zugriff (falls nötig)
 
 ---
 
-**Zusammenfassung:** Striktes 8-Phasen-Modell + 8 Agenten + GitHub Best Practice (Ein Repo = Ein Project) + Tool-Wiederverwendung = Qualitativ hochwertige Software.
+**Zusammenfassung:** Striktes 8-Phasen-Modell + 8 Agenten + GitHub Best Practice (Ein Repo = Ein Project) + Tool-Wiederverwendung + Health Checks = Qualitativ hochwertige Software.
 
 ---
 
 *Version: 2026-02-19*  
-*Ein Project pro Repository | Tool-Wiederverwendung | 24/7 Development*
+*Updates: Workspace-Isolation, PR-Prozess, Agent Health Checks, Lessons Learned*  
+*Ein Project pro Repository | Tool-Wiederverwendung | 24/7 Development | GitHub = Source of Truth*
