@@ -76,11 +76,13 @@ openfugjoobot/
 - **Size:** `xs`, `s`, `m`, `l`, `xl`
 - **Status:** `blocked`, `needs-review`, `qa-approved`
 
-### GitHub Projects (pro Repo)
+### GitHub Projects (Optional)
 - **Views:** Board (Kanban), Table, Roadmap
 - **Spalten:** Backlog → Ready → In Progress → In Review → Done
 - **Custom Fields:** Priority, Size, Sprint, Agent
 - **Automatisierung:** Issue opened → Backlog | PR opened → In Review | PR merged → Done
+
+*Hinweis: Einfaches Issue-Listing ohne Projects reicht aus.*
 
 ### Branching, PR & Merge Prozess (KRITISCH)
 
@@ -370,7 +372,75 @@ const { getDatabase } = require('../connection'); // ✅ Separate Modul
 
 ---
 
-## 🚀 Setup Checklist
+## 🤖 Autonomous Mode (NEU)
+
+### Konzept
+- **Autonomous = SELBSTSTÄNDIG, aber SEQUENZIELL**
+- Agenten arbeiten allein, aber **NICHT parallel**
+- Ein Agent nach dem anderen, nicht gleichzeitig Backend + Frontend
+
+### Warum sequentiell?
+- **Konflikte vermeiden**: Keine Race Conditions bei Git
+- **Überblick behalten**: Ich weiß immer wer was macht
+- **Probleme früh erkennen**: Wenn einer hängt, merke ich es sofort
+- **Ressourcen schonen**: Nicht 5 Agenten gleichzeitig = weniger RAM/CPU
+
+### Modi
+
+#### 1. Assisted Mode (Standard)
+```
+Ich mache alles selbst
+→ Code schreiben
+→ Git commands
+→ PR erstellen
+→ Review
+```
+
+#### 2. Autonomous Mode (Sequenziell)
+```
+1. BackendAgent: "Mache Issue #1-4" → läuft allein
+   [WARTEN bis fertig]
+   
+2. FrontendAgent: "Mache Issue #5-8" → läuft allein  
+   [WARTEN bis fertig]
+   
+3. QAAgent: "Review PRs" → läuft allein
+   [WARTEN bis fertig]
+   
+4. DocsAgent: "README" → läuft allein
+```
+
+**NICHT so:**
+```
+❌ Backend + Frontend parallel (gleichzeitig starten)
+❌ Alle Agents auf einmal spawnen
+```
+
+### Toggle
+| Befehl | Modus |
+|--------|-------|
+| "Arbeite autonom" | Agenten übernehmenTasks sequentiell |
+| "Autonomous mode an" | Agenten dürfen selbst arbeiten |
+| "Autonomous mode aus" | Ich mache alles selbst (default) |
+| "Ich will das selbst machen" | Assisted mode |
+
+**Red Flags im Autonomous Mode:**
+- ❌ Mehrere Agenten gleichzeitig aktiv
+- ❌ Agent startet ohne meine Bestätigung
+- ❌ Parallel PRs von verschiedenen Agents
+- ❌ Keine Health Checks zwischen Agents
+
+**Best Practice:**
+```
+1. Agent spawnen
+2. "Erledigt?" abwarten
+3. Ergebnis prüfen (Health Check)
+4. Erst dann nächster Agent
+```
+
+---
+
+## 🧹 Post-Project Cleanup (NEU)
 
 - [ ] **Skills prüfen:** Vorhandene Tools in `skills/` und `TOOLS.md` suchen
 - [ ] **Repo erstellen:** Ein Repo pro Projekt
@@ -385,10 +455,79 @@ const { getDatabase } = require('../connection'); // ✅ Separate Modul
 
 ---
 
-**Zusammenfassung:** Striktes 8-Phasen-Modell + 8 Agenten + GitHub Best Practice (Ein Repo = Ein Project) + Tool-Wiederverwendung + Health Checks = Qualitativ hochwertige Software.
+---
+
+## 🧹 Post-Project Cleanup (NEU)
+
+**Nach jedem Projekt (Phase 8):**
+
+### Local Cleanup
+```bash
+# Temp-Dateien löschen
+rm -rf ~/.openclaw/workspace-*/node_modules  # Alte node_modules
+rm -rf ~/.openclaw/*/.cache                     # Caches
+rm -rf ~/.openclaw/*/.log                       # Log-Dateien
+rm -rf ~/.openclaw/*/tmp                        # Temp-Verzeichnisse
+
+# Duplikate entfernen
+rm -rf ~/repos/*                                # Falsche Pfade
+rm -rf ~/.openclaw/workspace-*-*/               # Temp Agent-Workspaces
+
+# Git aufräumen
+git branch | grep -v "main\|master" | xargs git branch -d  # Alte Branches
+```
+
+### npm/pip Caches
+```bash
+# npm Cache
+npm cache clean --force
+rm -rf ~/.npm/_cacache
+
+# pip Cache
+pip cache purge
+rm -rf ~/.cache/pip
+```
+
+### System Cleanup
+```bash
+# Alte Docker Images (falls verwendet)
+docker system prune -f 2>/dev/null || true
+
+# Papierkorb leeren
+rm -rf ~/.local/share/Trash/*
+```
+
+### Verify
+```bash
+# Speicher prüfen
+du -sh ~/.openclaw/* | sort -h | tail -10
+du -sh ~ | head -1  # Gesamtspeicher
+```
+
+**Ziel:** ~2-3 GB frei nach jedem Projekt
+
+---
+
+## 🚀 Setup Checklist
+
+- [ ] **Skills prüfen:** Vorhandene Tools in `skills/` und `TOOLS.md` suchen
+- [ ] **Repo erstellen:** Ein Repo pro Projekt
+- [ ] **GitHub Project:** Board + Views (OPTIONAL)
+- [ ] **Labels:** Type, Priority, Size konfigurieren
+- [ ] **Branch-Protection:** main protected, CI required
+- [ ] **Workspaces:** 8 Agent-Workspaces einrichten
+- [ ] **PR-Template:** Erstellen
+- [ ] **Cleanup-Script:** Post-Project Cleanup einrichten
+- [ ] **Test-Run:** Erstes Ticket durchlaufen
+
+**Aufwand:** 3-4 Stunden
+
+---
+
+**Zusammenfassung:** Striktes 8-Phasen-Modell + 8 Agenten + GitHub Best Practice (Ein Repo = Ein Project) + Tool-Wiederverwendung + Health Checks + Post-Project Cleanup = Qualitativ hochwertige Software.
 
 ---
 
 *Version: 2026-02-19*  
-*Updates: Workspace-Isolation, PR-Prozess, Agent Health Checks, Lessons Learned*  
-*Ein Project pro Repository | Tool-Wiederverwendung | 24/7 Development | GitHub = Source of Truth*
+*Updates: Workspace-Isolation, PR-Prozess, Agent Health Checks, Lessons Learned, Autonomous Mode, Post-Project Cleanup*  
+*Ein Project pro Repository | Tool-Wiederverwendung | 24/7 Development | GitHub = Source of Truth | Autonomous Sequentiell*
