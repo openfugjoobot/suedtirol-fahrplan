@@ -102,5 +102,21 @@
 
 ---
 
+## 🎯 Abgeschlossene Projekte
+
+### 2026-02-19: Crypto Skill v1.1.0 — RSS-only News Aggregation
+**Issue:** #25 (CryptoPanic API Key fehlt)  
+**Lösung:** CryptoPanic entfernt, 5 RSS-Feeds implementiert  
+**Agent Team:** ResearchAgent, ArchitectAgent, BackendAgent (×4), QAAgent, DocsAgent  
+**Zeit:** ~34 Minuten (Phasen 0-8)  
+**Ergebnis:**
+- ✅ 3 neue RSS-Feeds: Decrypt, CryptoSlate, AMBCrypto
+- ✅ URL-Canonicalization für Deduplizierung
+- ✅ 92 Artikel/Abfrage (vorher ~30)
+- ✅ Keine Auth-Key Abhängigkeit mehr
+- **Retro:** `memory/RETRO-2026-02-19-crypto-rss.md`
+
+---
+
 *Last updated: 2026-02-19*
 *Workflow v1.0 | 8-Agent System | GitHub Projects*
