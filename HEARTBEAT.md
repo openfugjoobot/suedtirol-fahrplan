@@ -16,6 +16,10 @@
 - [ ] New comments on issues?
 - [ ] Blocked issues (>2h no activity)?
 - [ ] Ready to close?
+- [ ] **Open issues** → Start Phase 0 preparation (sowie möglich)
+  - Grobe Anforderungen klären
+  - Research/Architect Agent spawnen wenn sinnvoll
+  - Specs erstellen (analysis.md, architecture.md)
 
 ### 4. System Health
 - [ ] Disk space: `df -h /` (<80%?)
@@ -25,6 +29,16 @@
 ### 5. Memory
 - [ ] Update `memory/YYYY-MM-DD.md` if needed
 - [ ] Review yesterday's notes → worth keeping?
+
+### 6. Proactive Issue Preparation
+**Wenn keine Agenten laufen und keine aktiven Blocker:**
+- [ ] Offene Issues durchgehen → Phase 0/1/2 starten wenn möglich
+- [ ] Unvorbereitete Issues: Anforderungen klären
+- [ ] Ready für Research: `agent:research` spawnen → `analysis.md`
+- [ ] Ready für Design: `agent:architect` spawnen → `architecture.md`
+- [ ] Specs committen und pushen (auch ohne Implementation)
+
+**Ziel:** Vorbereitete Issues für zukünftige Sessions
 
 ## Weekly (Sunday)
 - [ ] Run: `~/.openclaw/scripts/cleanup.sh`
