@@ -104,6 +104,18 @@
 
 ## 🎯 Abgeschlossene Projekte
 
+### 2026-02-20: Crypto Skill v1.2.0 — OpenClaw Cron Migration
+**Issue:** #24 (Migrate to OpenClaw Cron)  
+**Lösung:** Node.js Scheduler ersetzt durch 3 OpenClaw Cron Jobs  
+**Agent Team:** ResearchAgent, ArchitectAgent, BackendAgent (×3), DevOpsAgent, QAAgent  
+**Zeit:** ~23 Minuten (Phasen 0-5, 8)  
+**Ergebnis:**
+- ✅ `cron-runner.js` mit CLI Dispatch (prices|news|briefing)
+- ✅ 3 Cron Jobs: alle 5 Min (prices), alle 15 Min (news), 09:00 CET (briefing)
+- ✅ Kein persistenter Prozess mehr (~50 MB RAM gespart)
+- ✅ JSON-structured logging für Monitoring
+- **Retro:** `memory/RETRO-2026-02-20-cron-migration.md`
+
 ### 2026-02-19: Crypto Skill v1.1.0 — RSS-only News Aggregation
 **Issue:** #25 (CryptoPanic API Key fehlt)  
 **Lösung:** CryptoPanic entfernt, 5 RSS-Feeds implementiert  

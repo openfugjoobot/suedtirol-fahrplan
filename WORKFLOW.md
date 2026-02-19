@@ -42,6 +42,16 @@ _8-Agent-Team, 8-Phasen-Workflow. Ein Repo = Ein Project._
 
 ## 🔗 GitHub Workflow (KRITISCH)
 
+### Sprache / Language (KRITISCH)
+**Alle Outputs für GitHub AUSSCHLIESSLICH auf Englisch:**
+- Issues → Englisch
+- PR Titel & Beschreibungen → Englisch  
+- Commit Messages → Englisch
+- Code Kommentare → Englisch
+- Dokumentation (README, docs) → Englisch
+
+*Kommunikation im Chat (Telegram) bleibt auf Deutsch wie vom User gewünscht.*
+
 ### PR-Prozess
 ```
 main (protected)
