@@ -16,30 +16,31 @@ function doLog(agent, input, output, model) {
 function doStats(agentName, todayOnly) {
   const stats = getStats(agentName, todayOnly);
   const agents = Object.keys(stats).sort((a, b) => stats[b].total - stats[a].total);
-  
+
   if (agents.length === 0) {
     console.log('No data found.');
     return;
   }
-  
-  const period = todayOnly ? 'Today' : 'All Time';
-  console.log(`\n📊 Token Usage Stats (${period})`);
-  console.log(`${'Agent'.padEnd(20)} ${'Sessions'.padStart(10)} ${'Input'.padStart(12)} ${'Output'.padStart(12)} ${'Total'.padStart(12)}`);
-  
+
+  const period = todayOnly ? '📅 Today' : '📊 All Time';
+  console.log(`\n${period}`);
+
   let grandTotal = 0;
+  let grandSessions = 0;
+  let grandInput = 0;
+  let grandOutput = 0;
+
   for (const agent of agents) {
     const s = stats[agent];
-    console.log(
-      `${agent.padEnd(20)} ` +
-      `${formatNumber(s.sessions).padStart(10)} ` +
-      `${formatNumber(s.input).padStart(12)} ` +
-      `${formatNumber(s.output).padStart(12)} ` +
-      `${formatNumber(s.total).padStart(12)}`
-    );
+    console.log(`🤖 ${agent.padEnd(18)} 📊 ${String(s.sessions).padStart(2)}  📥 ${formatNumber(s.input).padStart(10)}  📤 ${formatNumber(s.output).padStart(8)}  🧮 ${formatNumber(s.total).padStart(10)}`);
     grandTotal += s.total;
+    grandSessions += s.sessions;
+    grandInput += s.input;
+    grandOutput += s.output;
   }
 
-  console.log(`${'TOTAL'.padEnd(20)} ${''.padStart(10)} ${''.padStart(12)} ${''.padStart(12)} ${formatNumber(grandTotal).padStart(12)}`);
+  console.log(`━`.repeat(65));
+  console.log(`🤖 ${'TOTAL'.padEnd(18)} 📊 ${String(grandSessions).padStart(2)}  📥 ${formatNumber(grandInput).padStart(10)}  📤 ${formatNumber(grandOutput).padStart(8)}  🧮 ${formatNumber(grandTotal).padStart(10)}`);
   console.log();
 }
 
