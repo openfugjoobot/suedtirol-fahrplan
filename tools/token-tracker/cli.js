@@ -24,9 +24,7 @@ function doStats(agentName, todayOnly) {
   
   const period = todayOnly ? 'Today' : 'All Time';
   console.log(`\n📊 Token Usage Stats (${period})`);
-  console.log('═'.repeat(70));
   console.log(`${'Agent'.padEnd(20)} ${'Sessions'.padStart(10)} ${'Input'.padStart(12)} ${'Output'.padStart(12)} ${'Total'.padStart(12)}`);
-  console.log('─'.repeat(70));
   
   let grandTotal = 0;
   for (const agent of agents) {
@@ -40,8 +38,7 @@ function doStats(agentName, todayOnly) {
     );
     grandTotal += s.total;
   }
-  
-  console.log('─'.repeat(70));
+
   console.log(`${'TOTAL'.padEnd(20)} ${''.padStart(10)} ${''.padStart(12)} ${''.padStart(12)} ${formatNumber(grandTotal).padStart(12)}`);
   console.log();
 }
