@@ -22,26 +22,13 @@ function doStats(agentName, todayOnly) {
     return;
   }
 
-  const period = todayOnly ? '📅 Today' : '📊 All Time';
-  console.log(`\n${period}`);
-
-  let grandTotal = 0;
-  let grandSessions = 0;
-  let grandInput = 0;
-  let grandOutput = 0;
-
   for (const agent of agents) {
     const s = stats[agent];
-    console.log(`🤖 ${agent.padEnd(18)} 📊 ${String(s.sessions).padStart(2)}  📥 ${formatNumber(s.input).padStart(10)}  📤 ${formatNumber(s.output).padStart(8)}  🧮 ${formatNumber(s.total).padStart(10)}`);
-    grandTotal += s.total;
-    grandSessions += s.sessions;
-    grandInput += s.input;
-    grandOutput += s.output;
+    const displayName = agent.replace(/-session$/, '');
+    const inputK = s.input >= 1000 ? (s.input / 1000).toFixed(1) + 'k' : s.input;
+    const outputK = s.output >= 1000 ? (s.output / 1000).toFixed(1) + 'k' : s.output;
+    console.log(`🤖${displayName}: ${s.sessions}× | ${inputK}📥 | ${outputK}📤`);
   }
-
-  console.log(`━`.repeat(65));
-  console.log(`🤖 ${'TOTAL'.padEnd(18)} 📊 ${String(grandSessions).padStart(2)}  📥 ${formatNumber(grandInput).padStart(10)}  📤 ${formatNumber(grandOutput).padStart(8)}  🧮 ${formatNumber(grandTotal).padStart(10)}`);
-  console.log();
 }
 
 function showHelp() {
