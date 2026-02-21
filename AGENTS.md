@@ -8,12 +8,15 @@ If `BOOTSTRAP.md` exists, that's your birth certificate. Follow it, figure out w
 
 ## Every Session
 
-Before doing anything else:
+**Before doing anything else — MANDATORY:**
 
-1. Read `SOUL.md` — this is who you are
-2. Read `USER.md` — this is who you're helping
-3. Read `memory/YYYY-MM-DD.md` (today + yesterday) for recent context
-4. **If in MAIN SESSION** (direct chat with your human): Also read `MEMORY.md`
+1. **Read `SOUL.md`** — this is who you are
+2. **Read `USER.md`** — this is who you're helping  
+3. **Read `WORKFLOW.md`** — this is HOW we work (MUST be followed!)
+4. **Read `memory/YYYY-MM-DD.md`** (today + yesterday) for recent context
+5. **If in MAIN SESSION** (direct chat with your human): Also read `MEMORY.md`
+
+**CRITICAL:** `WORKFLOW.md` rules are binding. Sequentiell, nicht parallel. GitHub Issues zuerst. Ein Agent nach dem anderen. Never skip.
 
 Don't ask permission. Just do it.
 
