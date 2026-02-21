@@ -1,24 +1,13 @@
-const client = require('./client');
+const axios = require('axios');
+const xml2js = require('xml2js');
+
+const API_BASE = 'https://efa.sta.bz.it/apb/';
 
 /**
- * Trip planning API wrapper
- * Uses XML_TRIP_REQUEST2 endpoint for route planning
- * 
- * EFAPI endpoints:
- * - Trip request: POST XML_TRIP_REQUEST2 with language=de|it
- * - All requests: use sessionID, include ext=ST
- */
-
-/**
- * Plan a trip between two stops
- * @param {string} from - Origin stop name or ID
- * @param {string} to - Destination stop name or ID
+ * Plan a trip between two stops using IDs
+ * @param {string} from - Origin stop ID (e.g. 66000468)
+ * @param {string} to - Destination stop ID (e.g. 66000998)
  * @param {object} options - Optional parameters
- * @param {string} options.language - Language preference (de|it)
- * @param {string} options.time - Departure time (HH:mm)
- * @param {string} options.date - Departure date (YYYYMMDD)
- * @param {number} options.limit - Number of route alternatives (default: 3)
- * @param {string} options.sessionId - Session ID for API
  * @returns {Promise<Array>} Array of trip routes
  */
 async function planTrip(from, to, options = {}) {
@@ -26,161 +15,150 @@ async function planTrip(from, to, options = {}) {
     language = 'de',
     time,
     date,
-    limit = 3,
-    sessionId = generateSessionId()
+    limit = 3
   } = options;
 
-  const params = {
-    name_origin: from,
-    type_origin: 'any',
-    name_destination: to,
-    type_destination: 'any',
-    calcNumberOfTrips: limit,
-    sessionID: sessionId,
-    ext: 'ST',
-    language,
-    outputFormat: 'json'
-  };
+  // Build URL - language FIRST, then odvMacro, then stop IDs
+  // Note: ext=ST not needed according to docs
+  let url = `XML_TRIP_REQUEST2?`;
+  url += `language=${language}&`;
+  url += `odvMacro=true&`;
+  url += `coordOutputFormat=WGS84[DD.DDDDD]&`;
+  url += `name_origin=${encodeURIComponent(from)}&`;
+  url += `type_origin=any&`;
+  url += `name_destination=${encodeURIComponent(to)}&`;
+  url += `type_destination=any&`;
+  url += `calcNumberOfTrips=${limit}`;
 
-  // Add optional time/date parameters
   if (time) {
-    params.itdTime = time;
+    url += `&itdTime=${encodeURIComponent(time)}`;
   }
   if (date) {
-    params.itdDate = date;
+    url += `&itdDate=${encodeURIComponent(date)}`;
   }
 
-  const response = await client.post('XML_TRIP_REQUEST2', null, { params });
-  return parseTripResponse(response.data);
+  try {
+    const response = await axios.get(API_BASE + url, {
+      timeout: 10000,
+      headers: {
+        'User-Agent': 'OpenClaw/suedtirol-transit/1.0'
+      }
+    });
+    
+    const parser = new xml2js.Parser({ explicitArray: false });
+    const parsed = await parser.parseStringPromise(response.data);
+    
+    return parseTripResponse(parsed);
+  } catch (error) {
+    console.error('Trip planning error:', error.message);
+    throw error;
+  }
 }
 
-/**
- * Plan a trip using specific stop IDs for better accuracy
- * @param {string} fromId - Origin stop ID
- * @param {string} toId - Destination stop ID
- * @param {object} options - Optional parameters
- * @returns {Promise<Array>} Array of trip routes
- */
 async function planTripById(fromId, toId, options = {}) {
-  const {
-    language = 'de',
-    time,
-    date,
-    limit = 3,
-    sessionId = generateSessionId(),
-    excludedMeans
-  } = options;
-
-  const params = {
-    name_origin: fromId,
-    type_origin: 'stop',
-    name_destination: toId,
-    type_destination: 'stop',
-    calcNumberOfTrips: limit,
-    sessionID: sessionId,
-    ext: 'ST',
-    language,
-    outputFormat: 'json'
-  };
-
-  if (time) {
-    params.itdTime = time;
-  }
-  if (date) {
-    params.itdDate = date;
-  }
-  if (excludedMeans) {
-    params.excludedMeans = excludedMeans;
-  }
-
-  const response = await client.post('XML_TRIP_REQUEST2', null, { params });
-  return parseTripResponse(response.data);
+  return planTrip(fromId, toId, options);
 }
 
-/**
- * Parse trip response into clean trip objects
- * @param {object} data - Raw API response
- * @returns {Array} Clean trip objects with duration, distance, legs, etc.
- */
 function parseTripResponse(data) {
-  const trips = data?.tripRoutes?.trips;
-  if (!trips) return [];
+  const routeList = data?.itdRequest?.itdTripRequest?.itdItinerary?.itdRouteList;
+  
+  if (!routeList?.itdRoute) {
+    return [];
+  }
 
-  const tripsArray = Array.isArray(trips) ? trips : [trips];
+  const routes = routeList.itdRoute;
+  const routesArray = Array.isArray(routes) ? routes : [routes];
 
-  return tripsArray.map(trip => ({
-    duration: trip.duration,
-    distance: parseInt(trip.distance, 10),
-    interchanges: parseInt(trip.interchange, 10) || 0,
-    legs: parseLegs(trip.legs?.leg),
-    fare: parseFare(trip.itdFare),
-    sessionId: data?.parameters?.find(p => p.name === 'sessionID')?.value
-  }));
+  return routesArray.map(route => {
+    // Get duration from route attributes
+    const durationStr = route?.$?.duration || route?.$?.publicDuration || '00:00';
+    const durationMatch = durationStr.match(/(\d+):(\d+)/);
+    const duration = durationMatch ? (parseInt(durationMatch[1], 10) * 60 + parseInt(durationMatch[2], 10)) : 0;
+    
+    // Get partial routes (legs)
+    const prList = route?.itdPartialRouteList?.itdPartialRoute;
+    const legs = parseLegs(prList);
+    
+    // Extract departure from first leg
+    const departure = legs[0]?.origin;
+    
+    // Extract arrival from last leg  
+    const arrival = legs[legs.length - 1]?.destination;
+    
+    return {
+      duration: duration,
+      distance: parseInt(route?.$?.distance || -1, 10),
+      interchanges: parseInt(route?.$?.interchange || 0, 10),
+      departure: departure,
+      arrival: arrival,
+      legs: legs,
+      routeIndex: route?.$?.routeIndex
+    };
+  }).filter(r => r.duration > 0);
 }
 
-/**
- * Parse trip legs
- * @param {Array|Object} legsData - Leg data from API
- * @returns {Array} Parsed leg objects
- */
 function parseLegs(legsData) {
   if (!legsData) return [];
   
   const legsArray = Array.isArray(legsData) ? legsData : [legsData];
   
-  return legsArray.map(leg => ({
-    mode: leg.mode?.name,
-    line: leg.mode?.number,
-    destination: leg.mode?.destination,
-    direction: leg.mode?.direction,
-    duration: leg.time?.duration,
-    origin: {
-      name: leg.points?.point?.[0]?.name || leg.points?.point?.name,
-      time: leg.points?.point?.[0]?.dateTime?.time,
-      platform: leg.points?.point?.[0]?.platform?.name
-    },
-    destination: {
-      name: leg.points?.point?.[1]?.name || leg.points?.point?.name,
-      time: leg.points?.point?.[1]?.dateTime?.time,
-      platform: leg.points?.point?.[1]?.platform?.name
-    },
-    stops: leg.stopSeq?.map(stop => ({
-      name: stop.name,
-      arrival: stop.arrival?.time,
-      departure: stop.departure?.time
-    })) || []
-  }));
+  return legsArray.map(leg => {
+    const mot = leg?.itdMeansOfTransport?.$ || leg?.itdMeansOfTransport;
+    const points = leg?.itdPoint;
+    
+    if (!points) return null;
+    
+    // Points can be array or single object
+    const ptArray = Array.isArray(points) ? points.filter(p => p) : [points].filter(p => p);
+    
+    if (ptArray.length === 0) return null;
+    
+    const fromPoint = ptArray[0];
+    const toPoint = ptArray[ptArray.length - 1];
+    
+    return {
+      mode: mot?.name,
+      line: mot?.shortname || mot?.number,
+      destination: mot?.destination,
+      direction: mot?.direction,
+      duration: parseInt(leg?.$?.timeMinute || 0, 10),
+      origin: parsePoint(fromPoint),
+      destination: parsePoint(toPoint)
+    };
+  }).filter(Boolean);
 }
 
-/**
- * Parse fare information
- * @param {object} fareData - Fare data from API
- * @returns {object|null} Parsed fare object
- */
-function parseFare(fareData) {
-  if (!fareData) return null;
+function parsePoint(point) {
+  if (!point) return null;
   
-  const tickets = fareData?.tickets?.ticket;
-  if (!tickets) return null;
+  // Handle both $ attributes and direct properties
+  const attrs = point.$ || point;
+  const name = attrs?.name;
+  const usage = attrs?.usage;
+  const platform = attrs?.platformName || attrs?.platform;
   
-  const ticketsArray = Array.isArray(tickets) ? tickets : [tickets];
+  // Parse datetime
+  const dt = point?.itdDateTime?.itdTime?.$ || point?.itdDateTime?.itdTime;
+  const date = point?.itdDateTime?.itdDate?.$ || point?.itdDateTime?.itdDate;
+  
+  const timeStr = dt ? 
+    String(dt.hour || '??').padStart(2, '0') + ':' + String(dt.minute || '??').padStart(2, '0') : 
+    null;
+  
+  const dateStr = date ?
+    String(date.day || '??').padStart(2, '0') + '.' + String(date.month || '??').padStart(2, '0') + '.' + (date.year || '????') :
+    null;
   
   return {
-    currency: fareData.currency,
-    tickets: ticketsArray.map(ticket => ({
-      name: ticket.name,
-      price: ticket.price,
-      currency: ticket.currency
-    }))
+    stop: name,
+    usage: usage,
+    time: timeStr,
+    date: dateStr,
+    platform: platform
   };
 }
 
-/**
- * Generate a unique session ID
- * @returns {string} Session ID
- */
-function generateSessionId() {
-  return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
-}
-
-module.exports = { planTrip, planTripById };
+module.exports = {
+  planTrip,
+  planTripById
+};
