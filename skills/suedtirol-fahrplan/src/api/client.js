@@ -1,34 +1,42 @@
-import axios from 'axios';
-import retry from 'async-retry';
+const axios = require('axios');
 
-const client = axios.create({
-  baseURL: 'https://www.suedtirolmobil.org',
+const API_CONFIG = {
+  baseURL: 'https://efa.sta.bz.it/apb/',
   timeout: 10000,
-});
+  headers: {
+    'Accept': 'application/json',
+    'User-Agent': 'OpenClaw/suedtirol-transit/1.0'
+  }
+};
 
+// Create axios instance
+const client = axios.create(API_CONFIG);
+
+// Retry logic for timeout and network errors
 client.interceptors.response.use(
   response => response,
   async error => {
     const config = error.config;
-    if (!config || !config.retry) {
-      return Promise.reject(error);
+    
+    // Only retry once on timeout or network errors
+    if (!config.__retryCount && isRetryableError(error)) {
+      config.__retryCount = 1;
+      await new Promise(r => setTimeout(r, 1000)); // 1s delay
+      return client.request(config);
     }
-    return retry(
-      async (bail, attempt) => {
-        try {
-          const response = await axios(config);
-          return response.data;
-        } catch (err) {
-          if (attempt === config.retry.retries) {
-            bail(err);
-            return;
-          }
-          throw err;
-        }
-      },
-      { retries: config.retry.retries || 3 }
-    );
+    
+    return Promise.reject(error);
   }
 );
 
-export default client;
+function isRetryableError(error) {
+  return (
+    error.code === 'ECONNABORTED' ||
+    error.code === 'ETIMEDOUT' ||
+    error.code === 'ENOTFOUND' ||
+    error.code === 'ECONNRESET' ||
+    (error.response && error.response.status >= 500)
+  );
+}
+
+module.exports = client;
