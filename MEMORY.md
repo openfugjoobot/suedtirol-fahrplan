@@ -12,7 +12,20 @@
 
 ## 🎯 8-Phasen Development Workflow
 
-**WICHTIG: Bei jedem Session-Start WORKFLOW.md lesen!**
+**KRITISCH: Bei jedem Session-Start MÜSSEN diese Dateien gelesen werden!**
+
+### Session-Start Checklist (STRIKT EINHALTEN)
+- [ ] `SOUL.md` lesen → Persönlichkeit aktivieren
+- [ ] `USER.md` lesen → Wen darf ich helfen?
+- [ ] `WORKFLOW.md` lesen **UND BEFOLGEN** → Wie arbeiten wir?
+- [ ] `MEMORY.md` laden (nur Main Session) → Was wissen wir?
+
+**WORKFLOW.md MUSS befolgt werden:**
+- Sequentiell, nicht parallel
+- GitHub Issues vor jedem Code
+- Ein Agent nach dem anderen
+- Git push nach jedem Commit
+- Phase-Struktur strikt einhalten
 
 ### Agenten-Team
 | Agent | Workspace | Phase |
