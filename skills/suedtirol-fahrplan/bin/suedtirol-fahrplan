@@ -1,0 +1,11 @@
+#!/usr/bin/env node
+
+/**
+ * CLI entry point for Südtirol Fahrplan
+ */
+
+const path = require('path');
+const { startBot } = require('../src/index.js');
+
+// Start the bot
+startBot().catch(console.error);
