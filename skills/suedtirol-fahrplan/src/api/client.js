@@ -2,7 +2,7 @@ import axios from 'axios';
 import retry from 'async-retry';
 
 const client = axios.create({
-  baseURL: 'https://suedtirol-fahrplan.it',
+  baseURL: 'https://www.suedtirolmobil.org',
   timeout: 10000,
 });
 
