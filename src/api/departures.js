@@ -24,7 +24,6 @@ async function getDepartures(stop, options = {}) {
   const {
     limit = 5,
     language = 'de',
-    sessionId = generateSessionId(),
     time,
     date
   } = options;
@@ -33,10 +32,8 @@ async function getDepartures(stop, options = {}) {
     name_dm: stop,
     type_dm: 'any',
     dmLimit: limit,
-    sessionID: sessionId,
-    ext: 'ST',
     language,
-    outputFormat: 'json'
+    outputFormat: 'JSON'
   };
 
   // Add optional time/date parameters
@@ -93,7 +90,8 @@ async function getDeparturesById(stopId, options = {}) {
  * @returns {Array} Clean departure objects
  */
 function parseDeparturesResponse(data) {
-  const departureList = data?.dm?.departureList;
+  // departureList is at root level, not under dm
+  const departureList = data?.departureList;
   if (!departureList) return [];
 
   const departuresArray = Array.isArray(departureList) 
