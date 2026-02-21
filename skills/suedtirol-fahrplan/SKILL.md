@@ -1,81 +1,91 @@
-# Südtirol Fahrplan Skill
+---
+name: suedtirol-fahrplan
+description: "Südtirol Transit Bot - Bus, Zug, Seilbahn Abfragen"
+version: "1.0.0"
+author: "openfugjoobot"
+emoji: "🚌"
+requires:
+  node: ">=16.0.0"
+  bins: ["node", "npm"]
+  env:
+    - SUE_FAHRPLAN_BOT_TOKEN (Telegram bot token)
+  packages: ["axios", "telegraf", "async-retry"]
+commands:
+  start: "Start the Telegram bot"
+  stop: "Stop the bot"
+---
 
-Telegram bot for South Tyrol public transit schedules using the STA (Strutture Trasporto Alto Adige) EFA API.
+# 🚌 Südtirol Fahrplan Skill
+
+Transit information for South Tyrol (Südtirol) via the STA API.
 
 ## Features
 
-- 🚆 **Stop Search** - Find stations and stops by name (German/Italian)
-- 🚏 **Departures** - Real-time departure boards with delays
-- 🗺️ **Route Planning** - Trip planning between any two stops
-- 🌐 **Bilingual** - Supports both German and Italian
-- ⚡ **Real-time** - Live data including delays and platform info
+- 🔍 **Stop Search** - Find stops by name (German/Italian)
+- 🚌 **Departures** - Real-time departure board
+- 🗺️ **Route Planning** - Trip suggestions between stops
+- 🤖 **Telegram Bot** - Commands + inline keyboards
 
-## Commands
+## Installation
 
-| Command | Description | Example |
-|---------|-------------|---------|
-| `/search <name>` | Find stops | `/search Brixen` |
-| `/next <stop>` | Next departures | `/next Bolzano` |
-| `/route <from> to <to>` | Plan a trip | `/route Brixen to Bozen` |
-| `/help` | Show help | `/help` |
-
-Aliases: `/suche`, `/s`, `/abfahrt`, `/n`, `/verbindung`, `/r`, `/fahrt`, `/trip`
+```bash
+clawhub install suedtirol-fahrplan
+```
 
 ## Setup
 
-1. Install dependencies:
-```bash
-npm install
+1. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+2. **Configure environment**
+   ```bash
+   export SUE_FAHRPLAN_BOT_TOKEN="your-bot-token"
+   ```
+
+3. **Start the bot**
+   ```bash
+   npm start
+   # or
+   node bot.js
+   ```
+
+## Usage
+
+### Telegram Commands
+
+- `/search <Haltestelle>` - Suche nach Haltestellen
+- `/next <Haltestelle>` - Nächste Abfahrten
+- `/route <Von> -> <Nach>` - Verbindung planen
+- `/help` - Hilfe anzeigen
+
+### Examples
+
+- `/search Bolzano` → Zeigt alle Haltestellen in Bolzano
+- `/next Merano Stazione` → Abfahrten vom Meraner Bahnhof
+- `/route Bolzano -> Brixen` → Verbindung Bozen-Brixen
+
+## Architecture
+
+```
+src/
+├── api/           # STA API clients
+│   ├── client.js  # Axios client
+│   ├── stopfinder.js
+│   ├── departures.js
+│   └── trip.js
+├── bot/           # Telegram bot
+│   ├── commands.js
+│   ├── keyboards.js
+│   └── middleware.js
+└── index.js       # Main exports
 ```
 
-2. Set environment variable:
-```bash
-export TELEGRAM_BOT_TOKEN=your_bot_token_here
-```
+## API Source
 
-3. Start the bot:
-```bash
-npm start
-```
-
-## API Details
-
-- **Base URL:** `https://efa.sta.bz.it/apb/`
-- **Endpoints:**
-  - `XML_STOPFINDER_REQUEST` - Search stops
-  - `XML_DM_REQUEST` - Departures board
-  - `XML_TRIP_REQUEST2` - Trip planning
-- **Features:**
-  - `odvSugMacro=true` enables bilingual search
-  - `ext=ST` for South Tyrol extension
-  - All requests use sessionID
-
-## Project Structure
-
-```
-suedtirol-fahrplan/
-├── src/
-│   ├── api/
-│   │   ├── client.js       # Axios client with retry
-│   │   ├── stopfinder.js   # Stop search API
-│   │   ├── trip.js         # Trip planning API
-│   │   └── departures.js   # Departures API
-│   ├── handlers/
-│   │   ├── stopsearch.js   # /search handler
-│   │   ├── departures.js   # /next handler
-│   │   ├── trip.js         # /route handler
-│   │   └── help.js         # /help handler
-│   ├── commands/
-│   │   └── index.js        # Command router
-│   ├── utils/
-│   │   ├── formatters.js   # Message formatting
-│   │   └── validators.js   # Input validation
-│   └── index.js            # Bot entry point
-├── bin/
-│   └── suedtirol-fahrplan  # CLI wrapper
-├── package.json
-└── SKILL.md
-```
+- Data: [STA Südtirol](https://www.sta.bz.it)
+- Endpoint: `https://efa.sta.bz.it/apb/`
 
 ## License
 

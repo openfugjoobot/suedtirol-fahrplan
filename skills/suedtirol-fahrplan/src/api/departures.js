@@ -47,7 +47,7 @@ async function getDepartures(stop, options = {}) {
     params.itdDate = date;
   }
 
-  const response = await client.post('XML_DM_REQUEST', null, { params });
+  const response = await client.get('XML_DM_REQUEST', { params });
   return parseDeparturesResponse(response.data);
 }
 
@@ -68,7 +68,7 @@ async function getDeparturesById(stopId, options = {}) {
 
   const params = {
     name_dm: stopId,
-    type_dm: 'stop',
+    type_dm: 'any',  // 'stop' type doesn't always work with IDs in this API
     dmLimit: limit,
     sessionID: sessionId,
     ext: 'ST',
@@ -83,7 +83,7 @@ async function getDeparturesById(stopId, options = {}) {
     params.itdDate = date;
   }
 
-  const response = await client.post('XML_DM_REQUEST', null, { params });
+  const response = await client.get('XML_DM_REQUEST', { params });
   return parseDeparturesResponse(response.data);
 }
 
