@@ -50,7 +50,7 @@ async function planTrip(from, to, options = {}) {
     params.itdDate = date;
   }
 
-  const response = await client.get('XML_TRIP_REQUEST2', { params });
+  const response = await client.post('XML_TRIP_REQUEST2', null, { params });
   return parseTripResponse(response.data);
 }
 
@@ -93,7 +93,7 @@ async function planTripById(fromId, toId, options = {}) {
     params.excludedMeans = excludedMeans;
   }
 
-  const response = await client.get('XML_TRIP_REQUEST2', { params });
+  const response = await client.post('XML_TRIP_REQUEST2', null, { params });
   return parseTripResponse(response.data);
 }
 

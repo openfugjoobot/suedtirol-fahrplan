@@ -47,7 +47,7 @@ async function getDepartures(stop, options = {}) {
     params.itdDate = date;
   }
 
-  const response = await client.get('XML_DM_REQUEST', { params });
+  const response = await client.post('XML_DM_REQUEST', null, { params });
   return parseDeparturesResponse(response.data);
 }
 
@@ -83,7 +83,7 @@ async function getDeparturesById(stopId, options = {}) {
     params.itdDate = date;
   }
 
-  const response = await client.get('XML_DM_REQUEST', { params });
+  const response = await client.post('XML_DM_REQUEST', null, { params });
   return parseDeparturesResponse(response.data);
 }
 
