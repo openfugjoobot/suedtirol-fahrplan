@@ -2,7 +2,7 @@
  * Main entry point for the Südtirol Fahrplan Telegram Bot
  */
 
-const { Telegraf } = require('telegraf');
+const { Telegraf, session } = require('telegraf');
 const { registerCommands } = require('./commands');
 
 // Configuration - read from environment variables
@@ -19,6 +19,9 @@ if (!BOT_TOKEN) {
 const bot = new Telegraf(BOT_TOKEN, {
   username: BOT_USERNAME
 });
+
+// Add session middleware for user state
+bot.use(session());
 
 // Error handling
 bot.catch((err, ctx) => {

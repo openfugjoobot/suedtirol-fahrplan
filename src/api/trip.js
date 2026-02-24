@@ -1,7 +1,5 @@
-const axios = require('axios');
+const client = require('./client');
 const xml2js = require('xml2js');
-
-const API_BASE = 'https://efa.sta.bz.it/apb/';
 
 /**
  * Plan a trip between two stops using IDs
@@ -38,12 +36,7 @@ async function planTrip(from, to, options = {}) {
   }
 
   try {
-    const response = await axios.get(API_BASE + url, {
-      timeout: 10000,
-      headers: {
-        'User-Agent': 'OpenClaw/suedtirol-transit/1.0'
-      }
-    });
+    const response = await client.get(url);
     
     const parser = new xml2js.Parser({ explicitArray: false });
     const parsed = await parser.parseStringPromise(response.data);

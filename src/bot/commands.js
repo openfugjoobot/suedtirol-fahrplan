@@ -133,8 +133,18 @@ async function handleRouteCommand(ctx) {
   }
 
   const parts = args.split(separator[0]);
+  
+  // Validate that we have exactly 2 parts and neither is empty
+  if (parts.length !== 2) {
+    await ctx.reply(
+      '❌ Bitte gib Start und Ziel getrennt durch "->" an.\n\n' +
+      'Beispiel: `/route Bolzano -> Merano`'
+    );
+    return;
+  }
+  
   const from = parts[0].trim();
-  const to = parts[1]?.trim();
+  const to = parts[1].trim();
 
   if (!from || !to) {
     await ctx.reply(
@@ -175,6 +185,10 @@ async function handleRouteCommand(ctx) {
     });
 
     const keyboard = createRouteKeyboard(trips);
+    
+    // Store trips in session for detail view
+    ctx.session = { lastTrips: trips };
+    
     await ctx.reply(message, { reply_markup: keyboard });
 
   } catch (error) {
@@ -328,10 +342,42 @@ async function handleCallback(ctx) {
       
       case 'show_route_details': {
         const tripIndex = parseInt(parts[1], 10);
-        await ctx.answerCbQuery('Details folgen...');
-        // TODO: Show detailed trip information
+        await ctx.answerCbQuery('Lade Details...');
+        
+        // Get trip details from session or fetch fresh
+        const trips = ctx.session?.lastTrips;
+        if (trips && trips[tripIndex]) {
+          const trip = trips[tripIndex];
+          let message = `🗺️ Route ${tripIndex + 1} Details\n\n`;
+          message += `⏱️ Dauer: ${formatDuration(trip.duration)}\n`;
+          if (trip.interchanges > 0) {
+            message += `🔄 Umstiege: ${trip.interchanges}x\n`;
+          }
+          message += `\n📍 Abfahrt: ${trip.departure?.time || 'Unbekannt'}\n`;
+          message += `   ${trip.departure?.stop || 'Unbekannt'}\n\n`;
+          message += `🏁 Ankunft: ${trip.arrival?.time || 'Unbekannt'}\n`;
+          message += `   ${trip.arrival?.stop || 'Unbekannt'}\n\n`;
+          
+          if (trip.legs && trip.legs.length > 0) {
+            message += `🚌 Strecken:\n`;
+            trip.legs.forEach((leg, i) => {
+              message += `\n${i + 1}. ${leg.line || leg.mode || 'Bus'}\n`;
+              message += `   ${leg.origin?.stop || 'Start'} → ${leg.destination?.stop || 'Ziel'}\n`;
+              message += `   ${formatDuration(leg.duration)}\n`;
+            });
+          }
+          
+          await ctx.reply(message, { parse_mode: 'Markdown' });
+        } else {
+          await ctx.answerCbQuery('Details nicht mehr verfügbar');
+        }
         break;
       }
+      
+      case 'show_help':
+        await ctx.answerCbQuery();
+        await handleHelpCommand(ctx);
+        break;
       
       case 'start_route_search': {
         ctx.session = { awaiting: 'origin_for_route' };
