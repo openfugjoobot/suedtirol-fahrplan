@@ -8,7 +8,7 @@ requires:
   node: ">=16.0.0"
   bins: ["node", "npm"]
   env:
-    - SUE_FAHRPLAN_BOT_TOKEN (Telegram bot token)
+    - TELEGRAM_BOT_TOKEN (Telegram bot token)
   packages: ["axios", "telegraf", "async-retry"]
 commands:
   start: "Start the Telegram bot"
@@ -17,7 +17,7 @@ commands:
 
 # 🚌 Südtirol Fahrplan Skill
 
-Transit information for South Tyrol (Südtirol) via the STA API.
+Transit information for South Tyrol (Südtirol) via the EFA API.
 
 ## Features
 
@@ -41,7 +41,7 @@ clawhub install suedtirol-fahrplan
 
 2. **Configure environment**
    ```bash
-   export SUE_FAHRPLAN_BOT_TOKEN="your-bot-token"
+   export TELEGRAM_BOT_TOKEN="your-bot-token"
    ```
 
 3. **Start the bot**
@@ -84,7 +84,7 @@ src/
 
 ## API Source
 
-- Data: [STA Südtirol](https://www.sta.bz.it)
+- Data: [STA](https://www.sta.bz.it)
 - Endpoint: `https://efa.sta.bz.it/apb/`
 
 ## License
