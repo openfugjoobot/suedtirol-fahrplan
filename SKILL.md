@@ -17,7 +17,7 @@ commands:
 
 # 🚌 Südtirol Fahrplan Skill
 
-Transit information for South Tyrol (Südtirol) via the EFA API.
+Transit information for South Tyrol (Südtirol) via the EFA API (südtirolmobil).
 
 ## Features
 
