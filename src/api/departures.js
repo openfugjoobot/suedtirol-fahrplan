@@ -10,14 +10,40 @@ const client = require('./client');
  */
 
 /**
+ * Build transport mode filter params
+ * Only sends enabled modes with =true, never sends =false
+ * @param {object} filters - { inclMOT_ZUG, inclMOT_BUS, inclMOT_8 }
+ * @returns {object} Filter params for API
+ */
+function buildModeFilter(filters = {}) {
+  const { inclMOT_ZUG = true, inclMOT_BUS = true, inclMOT_8 = true } = filters;
+  
+  // If all enabled (default), don't send any filter params
+  if (inclMOT_ZUG && inclMOT_BUS && inclMOT_8) {
+    return {};
+  }
+  
+  const params = { includedMeans: 'checkbox' };
+  
+  // Only send =true params, never =false
+  if (inclMOT_ZUG) params.inclMOT_ZUG = 'true';
+  if (inclMOT_BUS) params.inclMOT_BUS = 'true';
+  if (inclMOT_8) params.inclMOT_8 = 'true';
+  
+  return params;
+}
+
+/**
  * Get upcoming departures for a stop
  * @param {string} stop - Stop name or ID
  * @param {object} options - Optional parameters
  * @param {number} options.limit - Maximum number of departures (default: 5)
  * @param {string} options.language - Language preference (de|it)
- * @param {string} options.sessionId - Session ID for API
  * @param {string} options.time - Time to start from (HH:mm)
  * @param {string} options.date - Date (YYYYMMDD)
+ * @param {boolean} options.inclMOT_ZUG - Include trains (default: true)
+ * @param {boolean} options.inclMOT_BUS - Include buses (default: true)
+ * @param {boolean} options.inclMOT_8 - Include cable cars/ropeways (default: true)
  * @returns {Promise<Array>} Array of departures
  */
 async function getDepartures(stop, options = {}) {
@@ -25,15 +51,20 @@ async function getDepartures(stop, options = {}) {
     limit = 5,
     language = 'de',
     time,
-    date
+    date,
+    inclMOT_ZUG = true,
+    inclMOT_BUS = true,
+    inclMOT_8 = true
   } = options;
 
   const params = {
     name_dm: stop,
     type_dm: 'any',
-    dmLimit: limit,
+    limit: limit,
+    mode: 'direct',
     language,
-    outputFormat: 'JSON'
+    outputFormat: 'JSON',
+    ...buildModeFilter({ inclMOT_ZUG, inclMOT_BUS, inclMOT_8 })
   };
 
   // Add optional time/date parameters
@@ -52,25 +83,30 @@ async function getDepartures(stop, options = {}) {
  * Get departures using stop ID for better accuracy
  * @param {string} stopId - Stop ID
  * @param {object} options - Optional parameters
+ * @param {boolean} options.inclMOT_ZUG - Include trains (default: true)
+ * @param {boolean} options.inclMOT_BUS - Include buses (default: true)
+ * @param {boolean} options.inclMOT_8 - Include cable cars/ropeways (default: true)
  * @returns {Promise<Array>} Array of departures
  */
 async function getDeparturesById(stopId, options = {}) {
   const {
     limit = 5,
     language = 'de',
-    sessionId = generateSessionId(),
     time,
-    date
+    date,
+    inclMOT_ZUG = true,
+    inclMOT_BUS = true,
+    inclMOT_8 = true
   } = options;
 
   const params = {
     name_dm: stopId,
-    type_dm: 'any',  // 'stop' type doesn't always work with IDs in this API
-    dmLimit: limit,
-    sessionID: sessionId,
-    ext: 'ST',
+    type_dm: 'any',
+    limit: limit,
+    mode: 'direct',
     language,
-    outputFormat: 'json'
+    outputFormat: 'JSON',
+    ...buildModeFilter({ inclMOT_ZUG, inclMOT_BUS, inclMOT_8 })
   };
 
   if (time) {
@@ -90,7 +126,6 @@ async function getDeparturesById(stopId, options = {}) {
  * @returns {Array} Clean departure objects
  */
 function parseDeparturesResponse(data) {
-  // departureList is at root level, not under dm
   const departureList = data?.departureList;
   if (!departureList) return [];
 
@@ -98,38 +133,33 @@ function parseDeparturesResponse(data) {
     ? departureList 
     : [departureList];
 
-  return departuresArray.map(dep => ({
-    line: dep.mode?.number,
-    mode: getTransportModeName(dep.mode?.destID),
-    destination: dep.mode?.destination,
-    direction: dep.mode?.direction,
-    platform: dep.platform?.name,
-    scheduledTime: dep.dateTime?.time,
-    scheduledDate: dep.dateTime?.date,
-    realTime: dep.dateTime?.rtTime,
-    realDate: dep.dateTime?.rtDate,
-    delayMinutes: calculateDelay(dep.dateTime?.time, dep.dateTime?.rtTime),
-    isRealTime: dep.dateTime?.rtValid === '1',
-    stop: dep.stopName || dep.name
-  }));
-}
-
-/**
- * Calculate delay in minutes between scheduled and real-time
- * @param {string} scheduled - Scheduled time (HH:mm)
- * @param {string} realTime - Real-time (HH:mm)
- * @returns {number|null} Delay in minutes or null
- */
-function calculateDelay(scheduled, realTime) {
-  if (!scheduled || !realTime) return null;
-  
-  const [schedHours, schedMins] = scheduled.split(':').map(Number);
-  const [realHours, realMins] = realTime.split(':').map(Number);
-  
-  const schedTotal = schedHours * 60 + schedMins;
-  const realTotal = realHours * 60 + realMins;
-  
-  return realTotal - schedTotal;
+  return departuresArray.map(dep => {
+    const dt = dep.dateTime;
+    const rt = dep.realDateTime;
+    const line = dep.servingLine;
+    
+    const scheduledTime = dt ? `${dt.hour}:${dt.minute.toString().padStart(2, '0')}` : null;
+    const realTime = rt ? `${rt.hour}:${rt.minute.toString().padStart(2, '0')}` : null;
+    
+    // Delay kommt direkt von der API (in Minuten)
+    const delayFromApi = line?.delay ? parseInt(line.delay, 10) : null;
+    
+    return {
+      line: line?.number || line?.symbol,
+      mode: getTransportModeName(line?.motType),
+      destination: line?.direction,
+      direction: line?.direction,
+      platform: dep.platform?.name || dep.platformName,
+      scheduledTime,
+      scheduledDate: dt ? `${dt.year}-${dt.month}-${dt.day}` : null,
+      realTime,
+      realDate: rt ? `${rt.year}-${rt.month}-${rt.day}` : null,
+      delayMinutes: delayFromApi,
+      isRealTime: line?.realtime === '1' || !!dep.realDateTime,
+      countdown: dep.countdown ? parseInt(dep.countdown, 10) : null,
+      stop: dep.stopName
+    };
+  });
 }
 
 /**
@@ -158,14 +188,6 @@ function getTransportModeName(modeId) {
   };
   
   return modes[modeId] || 'Unknown';
-}
-
-/**
- * Generate a unique session ID
- * @returns {string} Session ID
- */
-function generateSessionId() {
-  return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
 }
 
 module.exports = { getDepartures, getDeparturesById };
