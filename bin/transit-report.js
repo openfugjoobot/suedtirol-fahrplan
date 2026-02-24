@@ -14,7 +14,8 @@ const icons = {
 function formatDeparture(d) {
   const icon = icons[d.mode] || '🚍';
   const delay = d.delayMinutes;
-  const delayStr = delay === null ? '' : (delay === 0 ? ' ✅' : delay > 0 ? ' ⚠️ +' + delay + 'min' : ' 🟢 ' + delay + 'min');
+  // Nur Verspätung/Früher anzeigen, bei pünktlich (0) oder unbekannt (null) nichts
+  const delayStr = delay === null || delay === 0 ? '' : (delay > 0 ? ' ⚠️ +' + delay + 'min' : ' 🟢 ' + delay + 'min');
   const rt = d.isRealTime ? '⏱️ ' : '🕐 ';
   
   // Bis 15 Minuten: nur Countdown, sonst nur Uhrzeit
@@ -53,7 +54,7 @@ async function show() {
   const trudner = await getDeparturesById('66000650', { limit: 5 });
   trudner.forEach(d => console.log(formatDeparture(d)));
   
-  console.log('\n💡 ⏱️ = Echtzeit  •  🕐 = Planmäßig    ✅ = Pünktlich  •  ⚠️ = Verspätung');
+  console.log('\n💡 ⏱️ = Echtzeit  •  🕐 = Planmäßig    ⚠️ = Verspätung');
 }
 
 show().catch(err => {
