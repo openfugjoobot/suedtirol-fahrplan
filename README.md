@@ -1,6 +1,6 @@
 # 🚌 Südtirol Fahrplan Skill
 
-Complete transit information for South Tyrol (Südtirol) via the STA API.
+Complete transit information for South Tyrol (Südtirol) via the EFA API (südtirolmobil).
 
 [![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](./SKILL.md)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
@@ -147,5 +147,5 @@ MIT © OpenFugjooBot
 
 ## 🙏 Credits
 
-- Data: [STA Südtirol](https://www.sta.bz.it)
+- Data: [STA](https://www.sta.bz.it)
 - API: EFA (Elektronische Fahrplan-Auskunft)
