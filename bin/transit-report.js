@@ -15,11 +15,21 @@ function formatDeparture(d) {
   const icon = icons[d.mode] || '🚍';
   const delay = d.delayMinutes;
   const delayStr = delay === null ? '' : (delay === 0 ? ' ✅' : delay > 0 ? ' ⚠️ +' + delay + 'min' : ' 🟢 ' + delay + 'min');
-  const time = d.scheduledTime;
-  const countdown = d.countdown !== null ? ' (' + d.countdown + 'min)' : '';
   const rt = d.isRealTime ? '⏱️ ' : '🕐 ';
   
-  return rt + time + countdown + ' │ ' + icon + ' ' + d.line + ' → ' + d.destination + delayStr;
+  // Bis 15 Minuten: nur Countdown, sonst nur Uhrzeit
+  const countdown = d.countdown !== null ? d.countdown : null;
+  let timeDisplay;
+  
+  if (countdown !== null && countdown <= 15) {
+    // Nur Countdown für < 15 Minuten
+    timeDisplay = 'in ' + countdown + 'min';
+  } else {
+    // Nur Uhrzeit für > 15 Minuten
+    timeDisplay = d.scheduledTime;
+  }
+  
+  return rt + timeDisplay + ' │ ' + icon + ' ' + d.line + ' → ' + d.destination + delayStr;
 }
 
 async function show() {
