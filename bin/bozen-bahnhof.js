@@ -40,6 +40,9 @@ function formatDeparture(d) {
     timeDisplay = d.scheduledTime;
   }
   
+  // Platform info (only if present)
+  const platformStr = d.platform ? ' (Gl. ' + d.platform + ')' : '';
+
   // Build hints string
   let hintsStr = '';
   if (d.hints) {
@@ -47,7 +50,7 @@ function formatDeparture(d) {
     hintsStr = ' ' + hintEmojis;
   }
   
-  return timeDisplay + ' │ ' + icon + ' ' + d.line + ' → ' + d.destination + delayStr + hintsStr;
+  return timeDisplay + platformStr + ' │ ' + icon + ' ' + d.line + ' → ' + d.destination + delayStr + hintsStr;
 }
 
 function formatHintDetail(h) {
