@@ -14,23 +14,29 @@ const icons = {
 function formatDeparture(d) {
   const icon = icons[d.mode] || '🚍';
   const delay = d.delayMinutes;
-  // Nur Verspätung/Früher anzeigen, bei pünktlich (0) oder unbekannt (null) nichts
-  const delayStr = delay === null || delay === 0 ? '' : (delay > 0 ? ' ⚠️ +' + delay + 'min' : ' 🟢 ' + delay + 'min');
-  const rt = d.isRealTime ? '⏱️ ' : '🕐 ';
+  // Immer Verspätung anzeigen: (+0) bei pünktlich, (+5) bei Verspätung, (-2) bei früher
+  let delayStr;
+  if (delay === null) {
+    delayStr = '';
+  } else if (delay === 0) {
+    delayStr = ' (+0)';
+  } else if (delay > 0) {
+    delayStr = ' (+' + delay + ')';
+  } else {
+    delayStr = ' (' + delay + ')';
+  }
   
   // Bis 15 Minuten: nur Countdown, sonst nur Uhrzeit
   const countdown = d.countdown !== null ? d.countdown : null;
   let timeDisplay;
   
   if (countdown !== null && countdown <= 15) {
-    // Nur Countdown für < 15 Minuten
     timeDisplay = 'in ' + countdown + 'min';
   } else {
-    // Nur Uhrzeit für > 15 Minuten
     timeDisplay = d.scheduledTime;
   }
   
-  return rt + timeDisplay + ' │ ' + icon + ' ' + d.line + ' → ' + d.destination + delayStr;
+  return timeDisplay + ' │ ' + icon + ' ' + d.line + ' → ' + d.destination + delayStr;
 }
 
 async function show() {
@@ -54,7 +60,7 @@ async function show() {
   const trudner = await getDeparturesById('66000650', { limit: 5 });
   trudner.forEach(d => console.log(formatDeparture(d)));
   
-  console.log('\n💡 ⏱️ = Echtzeit  •  🕐 = Planmäßig    ⚠️ = Verspätung');
+  console.log('\n💡 (+0) = Pünktlich  •  (+5) = 5min Verspätung  •  (-2) = 2min früher');
 }
 
 show().catch(err => {

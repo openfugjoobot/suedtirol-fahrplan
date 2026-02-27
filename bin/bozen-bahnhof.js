@@ -14,8 +14,17 @@ const icons = {
 function formatDeparture(d) {
   const icon = icons[d.mode] || '🚍';
   const delay = d.delayMinutes;
-  const delayStr = delay === null || delay === 0 ? '' : (delay > 0 ? ' ⚠️ +' + delay + 'min' : ' 🟢 ' + delay + 'min');
-  const rt = d.isRealTime ? '⏱️ ' : '🕐 ';
+  // Immer Verspätung anzeigen: (+0) bei pünktlich, (+5) bei Verspätung, (-2) bei früher
+  let delayStr;
+  if (delay === null) {
+    delayStr = '';
+  } else if (delay === 0) {
+    delayStr = ' (+0)';
+  } else if (delay > 0) {
+    delayStr = ' (+' + delay + ')';
+  } else {
+    delayStr = ' (' + delay + ')';
+  }
   
   const countdown = d.countdown !== null ? d.countdown : null;
   let timeDisplay;
@@ -26,7 +35,7 @@ function formatDeparture(d) {
     timeDisplay = d.scheduledTime;
   }
   
-  return rt + timeDisplay + ' │ ' + icon + ' ' + d.line + ' → ' + d.destination + delayStr;
+  return timeDisplay + ' │ ' + icon + ' ' + d.line + ' → ' + d.destination + delayStr;
 }
 
 async function show() {
@@ -41,7 +50,7 @@ async function show() {
   });
   deps.forEach(d => console.log(formatDeparture(d)));
   
-  console.log('\n💡 ⏱️ = Echtzeit  •  🕐 = Planmäßig    ⚠️ = Verspätung');
+  console.log('\n💡 (+0) = Pünktlich  •  (+5) = 5min Verspätung  •  (-2) = 2min früher');
 }
 
 show().catch(err => {
