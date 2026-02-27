@@ -1,9 +1,6 @@
 const client = require('./client');
 const { stripHtml, parseInfoObject } = require('./utils');
 
-/**
- * Helper: Convert date to EFA format (YYYYMMDD)
- */
 function formatDate(date) {
   if (!date) return null;
   if (/^\d{8}$/.test(date)) return date;
@@ -16,9 +13,6 @@ function formatDate(date) {
   return null;
 }
 
-/**
- * Helper: Convert time to EFA format (HHmm)
- */
 function formatTime(time) {
   if (!time) return null;
   if (/^\d{4}$/.test(time) && !time.includes(':')) return time;
@@ -26,9 +20,6 @@ function formatTime(time) {
   return null;
 }
 
-/**
- * Parse info from departure response
- */
 function parseDepartureInfo(stopInfo, lineInfo, tripInfo) {
   const hints = [];
   
@@ -125,6 +116,11 @@ function parseDeparturesResponse(data) {
       dep.tripInfos?.tripInfo
     );
     
+    // Use platformName (readable), not platform (internal ID)
+    // Only return if actually present
+    const platformName = dep.platformName;
+    const platform = platformName && platformName.trim() ? platformName.trim() : null;
+    
     return {
       line: line?.number || line?.symbol,
       mode: getTransportModeName(line?.motType),
@@ -133,6 +129,7 @@ function parseDeparturesResponse(data) {
       delayMinutes: delayFromApi,
       isRealTime: line?.realtime === '1' || !!dep.realDateTime,
       countdown: dep.countdown ? parseInt(dep.countdown, 10) : null,
+      platform,
       hints
     };
   });
