@@ -112,7 +112,7 @@ function parseTripResponse(data) {
     return {
       duration,
       distance: parseInt(route?.$?.distance || -1, 10),
-      interchanges: parseInt(route?.$?.interchange || 0, 10),
+      interchanges: parseInt(route?.$?.changes || 0, 10),
       departure,
       arrival,
       legs,
