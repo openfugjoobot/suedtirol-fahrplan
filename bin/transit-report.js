@@ -1,5 +1,4 @@
 const { getDeparturesById } = require('../src/api/departures');
-const { getWarningsForStops } = require('../src/api/addinfo');
 
 const icons = {
   'Train': '🚆',
@@ -12,10 +11,10 @@ const icons = {
   'Ropeway': '🚠'
 };
 
-const WARNING_ICONS = {
-  bannerInfo: '📢',
-  lineInfo: '⚠️',
-  stopBlocking: '🚫'
+const HINT_ICONS = {
+  stop: '📍',
+  line: '⚠️',
+  trip: '📝'
 };
 
 function formatDeparture(d) {
@@ -41,81 +40,77 @@ function formatDeparture(d) {
     timeDisplay = d.scheduledTime;
   }
   
-  return timeDisplay + ' │ ' + icon + ' ' + d.line + ' → ' + d.destination + delayStr;
+  let hintsStr = '';
+  if (d.hints) {
+    const hintEmojis = d.hints.map(h => HINT_ICONS[h.type] || '•').join('');
+    hintsStr = ' ' + hintEmojis;
+  }
+  
+  return timeDisplay + ' │ ' + icon + ' ' + d.line + ' → ' + d.destination + delayStr + hintsStr;
 }
 
-function formatWarning(w) {
-  const icon = WARNING_ICONS[w.type] || '⚠️';
-  const lines = [];
-  
-  lines.push(icon + ' ' + (w.title || 'Hinweis'));
-  
-  if (w.subtitle) {
-    lines.push('   ' + w.subtitle);
+function formatHintDetail(h) {
+  const icon = HINT_ICONS[h.type] || '•';
+  let lines = [icon + ' ' + h.subject];
+  if (h.subtitle && h.subtitle !== h.subject) {
+    lines.push('   ' + h.subtitle);
   }
-  
-  if (w.content) {
-    const contentLines = w.content.split('\n').filter(l => l.trim());
-    const preview = contentLines.slice(0, 2).join(' ');
-    if (preview.length > 80) {
-      lines.push('   ' + preview.substring(0, 80) + '...');
-    } else {
-      lines.push('   ' + preview);
-    }
+  if (h.content) {
+    const preview = h.content.substring(0, 100);
+    lines.push('   ' + (h.content.length > 100 ? preview + '...' : preview));
   }
-  
-  if (w.concernedLines?.length > 0) {
-    const lineNums = w.concernedLines.map(l => l.number).join(', ');
-    lines.push('   📍 Linien: ' + lineNums);
-  }
-  
   return lines.join('\n');
 }
 
-async function showWarningsForStops(stopIds, label) {
-  try {
-    const warnings = await getWarningsForStops(stopIds);
-    const activeWarnings = warnings.filter(w => 
-      w.type === 'bannerInfo' || w.type === 'lineInfo' || w.type === 'stopBlocking'
-    );
+async function showStation(name, stopId, showHints, opts = {}) {
+  const deps = await getDeparturesById(stopId, opts);
+  
+  deps.forEach(d => {
+    console.log(formatDeparture(d));
     
-    if (activeWarnings.length > 0) {
-      console.log('⚠️  Hinweise für ' + label + ':\n');
-      activeWarnings.slice(0, 2).forEach(w => {
-        console.log(formatWarning(w));
-        console.log('');
+    if (d.hints) {
+      d.hints.forEach(h => {
+        const key = h.type + ':' + h.subject;
+        if (!showHints.has(key)) {
+          showHints.set(key, h);
+        }
       });
     }
-  } catch (e) {
-    // Silent fail for warnings
-  }
+  });
+  
+  return deps.length;
 }
 
 async function show() {
   const now = new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
   console.log('🚌🚆 ABFAHRTEN Neumarkt • ' + now + ' Uhr\n');
   
-  // Get warnings for Neumarkt stops
-  await showWarningsForStops(['66000696', '66000651', '66000650'], 'Neumarkt');
+  const uniqueHints = new Map();
   
   console.log('🚆 Neumarkt Bahnhof (nur Züge)');
-  const bahnhof = await getDeparturesById('66000696', { 
+  await showStation('Bahnhof', '66000696', uniqueHints, { 
     limit: 5, 
     inclMOT_ZUG: true,
     inclMOT_BUS: false,
     inclMOT_8: false
   });
-  bahnhof.forEach(d => console.log(formatDeparture(d)));
   
   console.log('\n🚌 Neumarkt Busbahnhof');
-  const busbhf = await getDeparturesById('66000651', { limit: 5 });
-  busbhf.forEach(d => console.log(formatDeparture(d)));
+  await showStation('Busbahnhof', '66000651', uniqueHints, { limit: 5 });
   
   console.log('\n🚍 Neumarkt, Trudner Bach');
-  const trudner = await getDeparturesById('66000650', { limit: 5 });
-  trudner.forEach(d => console.log(formatDeparture(d)));
+  await showStation('Trudner Bach', '66000650', uniqueHints, { limit: 5 });
+  
+  if (uniqueHints.size > 0) {
+    console.log('\n🔔 HINWEISE:');
+    uniqueHints.forEach(h => {
+      console.log('');
+      console.log(formatHintDetail(h));
+    });
+  }
   
   console.log('\n💡 (+0) = Pünktlich  •  (+5) = 5min Verspätung  •  (-2) = 2min früher');
+  console.log('📍 = Haltestelle  •  ⚠️ = Linie  •  📝 = Fahrt');
 }
 
 show().catch(err => {
