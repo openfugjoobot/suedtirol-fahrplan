@@ -1,5 +1,4 @@
 const { getDeparturesById } = require('../src/api/departures');
-const { getWarningsForStops } = require('../src/api/addinfo');
 
 const icons = {
   'Train': '🚆',
@@ -12,16 +11,15 @@ const icons = {
   'Ropeway': '🚠'
 };
 
-const WARNING_ICONS = {
-  bannerInfo: '📢',
-  lineInfo: '⚠️',
-  stopBlocking: '🚫'
+const HINT_ICONS = {
+  stop: '📍',
+  line: '⚠️',
+  trip: '📝'
 };
 
 function formatDeparture(d) {
   const icon = icons[d.mode] || '🚍';
   const delay = d.delayMinutes;
-  // Immer Verspätung anzeigen: (+0) bei pünktlich, (+5) bei Verspätung, (-2) bei früher
   let delayStr;
   if (delay === null) {
     delayStr = '';
@@ -42,75 +40,67 @@ function formatDeparture(d) {
     timeDisplay = d.scheduledTime;
   }
   
-  return timeDisplay + ' │ ' + icon + ' ' + d.line + ' → ' + d.destination + delayStr;
+  // Build hints string
+  let hintsStr = '';
+  if (d.hints) {
+    const hintEmojis = d.hints.map(h => HINT_ICONS[h.type] || '•').join('');
+    hintsStr = ' ' + hintEmojis;
+  }
+  
+  return timeDisplay + ' │ ' + icon + ' ' + d.line + ' → ' + d.destination + delayStr + hintsStr;
 }
 
-function formatWarning(w) {
-  const icon = WARNING_ICONS[w.type] || '⚠️';
-  const lines = [];
-  
-  // Title line
-  lines.push(icon + ' ' + (w.title || 'Hinweis'));
-  
-  // Subtitle if present
-  if (w.subtitle) {
-    lines.push('   ' + w.subtitle);
+function formatHintDetail(h) {
+  const icon = HINT_ICONS[h.type] || '•';
+  let lines = [icon + ' ' + h.subject];
+  if (h.subtitle && h.subtitle !== h.subject) {
+    lines.push('   ' + h.subtitle);
   }
-  
-  // Content (first 2 lines max to keep it compact)
-  if (w.content) {
-    const contentLines = w.content.split('\n').filter(l => l.trim());
-    const preview = contentLines.slice(0, 2).join(' ');
-    if (preview.length > 80) {
-      lines.push('   ' + preview.substring(0, 80) + '...');
-    } else {
-      lines.push('   ' + preview);
-    }
+  if (h.content) {
+    const preview = h.content.substring(0, 100);
+    lines.push('   ' + (h.content.length > 100 ? preview + '...' : preview));
   }
-  
-  // Affected lines
-  if (w.concernedLines?.length > 0) {
-    const lineNums = w.concernedLines.map(l => l.number).join(', ');
-    lines.push('   📍 Linien: ' + lineNums);
-  }
-  
   return lines.join('\n');
 }
 
 async function show() {
-  const STOP_ID = '66000468'; // Bozen Bahnhof
   const now = new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-  
-  // Fetch warnings and departures in parallel
-  const [warnings, deps] = await Promise.all([
-    getWarningsForStops(STOP_ID).catch(() => []),
-    getDeparturesById(STOP_ID, { 
-      limit: 8, 
-      inclMOT_ZUG: true,
-      inclMOT_BUS: false,
-      inclMOT_8: false
-    })
-  ]);
-  
   console.log('🚆 ABFAHRTEN Bozen Bahnhof • ' + now + ' Uhr\n');
   
-  // Show warnings first (if any)
-  const activeWarnings = warnings.filter(w => 
-    w.type === 'bannerInfo' || w.type === 'lineInfo' || w.type === 'stopBlocking'
-  );
+  const deps = await getDeparturesById('66000468', { 
+    limit: 8, 
+    inclMOT_ZUG: true,
+    inclMOT_BUS: false,
+    inclMOT_8: false
+  });
   
-  if (activeWarnings.length > 0) {
-    console.log('🔔 AKTIVE HINWEISE:\n');
-    activeWarnings.slice(0, 3).forEach(w => {
-      console.log(formatWarning(w));
+  // Collect unique hints to display below
+  const uniqueHints = new Map();
+  
+  deps.forEach(d => {
+    console.log(formatDeparture(d));
+    
+    if (d.hints) {
+      d.hints.forEach(h => {
+        const key = h.type + ':' + h.subject;
+        if (!uniqueHints.has(key)) {
+          uniqueHints.set(key, h);
+        }
+      });
+    }
+  });
+  
+  // Show hint details if any
+  if (uniqueHints.size > 0) {
+    console.log('\n🔔 HINWEISE:');
+    uniqueHints.forEach(h => {
       console.log('');
+      console.log(formatHintDetail(h));
     });
   }
   
-  // Show departures
-  deps.forEach(d => console.log(formatDeparture(d)));
-  
   console.log('\n💡 (+0) = Pünktlich  •  (+5) = 5min Verspätung  •  (-2) = 2min früher');
+  console.log('📍 = Haltestelle  •  ⚠️ = Linie  •  📝 = Fahrt');
 }
 
 show().catch(err => {
