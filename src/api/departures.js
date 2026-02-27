@@ -1,4 +1,5 @@
 const client = require('./client');
+const { stripHtml, parseInfoObject } = require('./utils');
 
 /**
  * Helper: Convert date to EFA format (YYYYMMDD)
@@ -26,40 +27,27 @@ function formatTime(time) {
 }
 
 /**
- * Helper: Strip HTML tags and decode entities
+ * Parse info from departure response
  */
-function stripHtml(html) {
-  if (!html) return '';
-  return html
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&nbsp;/g, ' ')
-    .trim();
-}
-
-/**
- * Parse info object (stopInfo, lineInfo, tripInfo)
- */
-function parseInfo(info) {
-  if (!info) return null;
+function parseDepartureInfo(stopInfo, lineInfo, tripInfo) {
+  const hints = [];
   
-  // Handle both single object and array
-  const infoItem = Array.isArray(info) ? info[0] : info;
+  if (stopInfo) {
+    const parsed = parseInfoObject(stopInfo);
+    if (parsed) hints.push({ type: 'stop', ...parsed });
+  }
   
-  return {
-    url: infoItem.infoLinkURL || '',
-    linkText: infoItem.infoLinkText || '',
-    subject: infoItem.infoText?.subject || '',
-    subtitle: infoItem.infoText?.subtitle || '',
-    content: stripHtml(infoItem.infoText?.content || ''),
-    additionalText: stripHtml(infoItem.infoText?.additionalText || ''),
-    htmlText: infoItem.infoText?.htmlText || ''
-  };
+  if (lineInfo) {
+    const parsed = parseInfoObject(lineInfo);
+    if (parsed) hints.push({ type: 'line', ...parsed });
+  }
+  
+  if (tripInfo) {
+    const parsed = parseInfoObject(tripInfo);
+    if (parsed) hints.push({ type: 'trip', ...parsed });
+  }
+  
+  return hints.length > 0 ? hints : null;
 }
 
 function buildModeFilter(filters = {}) {
@@ -130,23 +118,12 @@ function parseDeparturesResponse(data) {
     const realTime = rt ? rt.hour + ':' + String(rt.minute).padStart(2, '0') : null;
     const delayFromApi = line?.delay ? parseInt(line.delay, 10) : null;
     
-    // Parse hints/warnings from response
-    const hints = [];
-    
-    if (dep.stopInfos?.stopInfo) {
-      const stopInfo = parseInfo(dep.stopInfos.stopInfo);
-      if (stopInfo) hints.push({ type: 'stop', ...stopInfo });
-    }
-    
-    if (dep.lineInfos?.lineInfo) {
-      const lineInfo = parseInfo(dep.lineInfos.lineInfo);
-      if (lineInfo) hints.push({ type: 'line', ...lineInfo });
-    }
-    
-    if (dep.tripInfos?.tripInfo) {
-      const tripInfo = parseInfo(dep.tripInfos.tripInfo);
-      if (tripInfo) hints.push({ type: 'trip', ...tripInfo });
-    }
+    // Parse hints from response
+    const hints = parseDepartureInfo(
+      dep.stopInfos?.stopInfo,
+      dep.lineInfos?.lineInfo,
+      dep.tripInfos?.tripInfo
+    );
     
     return {
       line: line?.number || line?.symbol,
@@ -156,7 +133,7 @@ function parseDeparturesResponse(data) {
       delayMinutes: delayFromApi,
       isRealTime: line?.realtime === '1' || !!dep.realDateTime,
       countdown: dep.countdown ? parseInt(dep.countdown, 10) : null,
-      hints: hints.length > 0 ? hints : null
+      hints
     };
   });
 }
