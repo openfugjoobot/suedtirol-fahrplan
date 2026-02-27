@@ -35,7 +35,7 @@ function formatDeparture(d) {
   let timeDisplay;
   
   if (countdown !== null && countdown <= 15) {
-    timeDisplay = 'in ' + countdown + 'min';
+    timeDisplay = countdown + 'min';
   } else {
     timeDisplay = d.scheduledTime;
   }
