@@ -1,16 +1,16 @@
 const client = require('./client');
 
-/**
- * Search for stops by query
- * @param {string} query - Stop name to search (German or Italian)
- * @param {object} options - Optional parameters
- * @returns {Promise<Array>} Array of matching stops with {id, name, quality}
- */
 async function findStops(query, options = {}) {
   const params = {
+    language: 'de',
+    coordOutputFormat: 'WGS84[DD.ddddd]',
+    locationServerActive: '1',
+    useHouseNumberList: 'true',
+    type_sf: 'any',
     name_sf: query,
-    odvSugMacro: 'true',     // REQUIRED for bilingual support (German/Italian)
-    outputFormat: 'json',
+    odvSugMacro: 'true',
+    outputFormat: 'JSON',
+    outputEncoding: 'UTF-8',
     ...options
   };
   
@@ -18,53 +18,41 @@ async function findStops(query, options = {}) {
   return parseStopFinderResponse(response.data);
 }
 
-/**
- * Resolve a single stop with high confidence
- * @param {string} query - Stop name to resolve
- * @param {object} options - Optional parameters
- * @returns {Promise<object|null>} Best matching stop or null with {id, name, quality}
- */
 async function resolveStop(query, options = {}) {
   const stops = await findStops(query, options);
+  if (stops.length === 0) return null;
   
-  if (stops.length === 0) {
-    return null;
-  }
-  
-  // Sort by quality (highest first)
   const sorted = stops.sort((a, b) => b.quality - a.quality);
-  
-  // Return best match if quality is good enough
   const bestMatch = sorted[0];
-  if (bestMatch.quality >= 900) {
-    return bestMatch;
-  }
   
-  // Return best match anyway if it's decent (>600)
+  if (bestMatch.quality >= 900) return bestMatch;
   return bestMatch.quality > 600 ? bestMatch : null;
 }
 
-/**
- * Parse StopFinder response into clean stop objects
- * @param {object} data - Raw API response
- * @returns {Array} Clean stop objects with {id, name, quality, type, place, modes, coords}
- */
 function parseStopFinderResponse(data) {
-  const points = data?.stopFinder?.points;
+  const stopFinder = data?.stopFinder;
+  if (!stopFinder) return [];
+  
+  // Handle nested structure: stopFinder.points.point
+  let points = stopFinder.points;
+  if (points?.point) {
+    points = points.point;
+  }
+  
   if (!points) return [];
   
-  // Single result comes as object, multiple as array
   const pointsArray = Array.isArray(points) ? points : [points];
   
   return pointsArray.map(point => ({
     id: point.stateless || point.ref?.id,
     name: point.name,
-    place: point.ref?.place,
+    place: point.ref?.place || point.mainLoc,
     quality: parseInt(point.quality, 10) || 0,
     type: point.anyType,
     modes: point.modes?.split(',').map(Number) || [],
-    coords: point.ref?.coords
-  }));
+    coords: point.ref?.coords,
+    isBest: point.best === '1'
+  })).filter(p => p.id && p.name);
 }
 
 module.exports = { findStops, resolveStop };
