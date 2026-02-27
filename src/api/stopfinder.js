@@ -3,14 +3,10 @@ const client = require('./client');
 async function findStops(query, options = {}) {
   const params = {
     language: 'de',
-    coordOutputFormat: 'WGS84[DD.ddddd]',
-    locationServerActive: '1',
-    useHouseNumberList: 'true',
     type_sf: 'any',
     name_sf: query,
     odvSugMacro: 'true',
     outputFormat: 'JSON',
-    outputEncoding: 'UTF-8',
     ...options
   };
   
@@ -33,12 +29,8 @@ function parseStopFinderResponse(data) {
   const stopFinder = data?.stopFinder;
   if (!stopFinder) return [];
   
-  // Handle nested structure: stopFinder.points.point
   let points = stopFinder.points;
-  if (points?.point) {
-    points = points.point;
-  }
-  
+  if (points?.point) points = points.point;
   if (!points) return [];
   
   const pointsArray = Array.isArray(points) ? points : [points];
@@ -49,7 +41,6 @@ function parseStopFinderResponse(data) {
     place: point.ref?.place || point.mainLoc,
     quality: parseInt(point.quality, 10) || 0,
     type: point.anyType,
-    modes: point.modes?.split(',').map(Number) || [],
     coords: point.ref?.coords,
     isBest: point.best === '1'
   })).filter(p => p.id && p.name);
