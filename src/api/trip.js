@@ -147,11 +147,11 @@ function parseLegs(legsData) {
     return {
       mode: mot?.name,
       line: mot?.shortname || mot?.number,
-      destination: mot?.destination,
+      lineDestination: mot?.destination,     // Destination/endpoint of the line
       direction: mot?.direction,
       duration: parseInt(leg?.$?.timeMinute || 0, 10),
       origin: parsePoint(fromPoint),
-      destination: parsePoint(toPoint),
+      destination: parsePoint(toPoint),      // Arrival stop
       hints
     };
   }).filter(Boolean);
