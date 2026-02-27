@@ -2,9 +2,6 @@ const client = require('./client');
 const xml2js = require('xml2js');
 const { stripHtml, parseInfoObject } = require('./utils');
 
-/**
- * Plan a trip between two stops using IDs
- */
 async function planTrip(from, to, options = {}) {
   const {
     language = 'de',
@@ -41,9 +38,6 @@ async function planTripById(fromId, toId, options = {}) {
   return planTrip(fromId, toId, options);
 }
 
-/**
- * Parse info text list from route level
- */
 function parseRouteInfo(infoTextList) {
   if (!infoTextList?.infoText) return [];
   
@@ -60,9 +54,6 @@ function parseRouteInfo(infoTextList) {
   })).filter(i => i.subject || i.content);
 }
 
-/**
- * Parse genAttrList for warnings/attributes
- */
 function parseLegAttributes(genAttrList) {
   if (!genAttrList?.genAttrElem) return null;
   
@@ -147,11 +138,11 @@ function parseLegs(legsData) {
     return {
       mode: mot?.name,
       line: mot?.shortname || mot?.number,
-      lineDestination: mot?.destination,     // Destination/endpoint of the line
+      lineDestination: mot?.destination,
       direction: mot?.direction,
       duration: parseInt(leg?.$?.timeMinute || 0, 10),
       origin: parsePoint(fromPoint),
-      destination: parsePoint(toPoint),      // Arrival stop
+      destination: parsePoint(toPoint),
       hints
     };
   }).filter(Boolean);
@@ -163,7 +154,11 @@ function parsePoint(point) {
   const attrs = point.$ || point;
   const name = attrs?.name;
   const usage = attrs?.usage;
-  const platform = attrs?.platformName || attrs?.platform;
+  
+  // Use platformName only (readable names like "2", "B")
+  // Skip if empty or undefined - don't use platform codes
+  const platformName = attrs?.platformName;
+  const platform = platformName && platformName.trim() ? platformName.trim() : null;
   
   const dt = point?.itdDateTime?.itdTime?.$ || point?.itdDateTime?.itdTime;
   const date = point?.itdDateTime?.itdDate?.$ || point?.itdDateTime?.itdDate;
