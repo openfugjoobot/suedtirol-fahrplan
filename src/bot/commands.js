@@ -112,6 +112,18 @@ async function handleNextCommand(ctx) {
 }
 
 /**
+ * Resolve a stop name to a stop ID (best match by quality)
+ */
+async function resolveStopId(query) {
+  const stops = await findStops(query);
+  if (stops.length === 0) return null;
+  
+  // Sort by quality (highest first) and return the best match
+  const sorted = stops.sort((a, b) => b.quality - a.quality);
+  return sorted[0];
+}
+
+/**
  * Handle /route <Von> -> <Nach>
  * Plan a route between two stops
  */
@@ -143,10 +155,10 @@ async function handleRouteCommand(ctx) {
     return;
   }
   
-  const from = parts[0].trim();
-  const to = parts[1].trim();
+  const fromQuery = parts[0].trim();
+  const toQuery = parts[1].trim();
 
-  if (!from || !to) {
+  if (!fromQuery || !toQuery) {
     await ctx.reply(
       '❌ Bitte gib sowohl Start als auch Ziel an.\n\n' +
       'Beispiel: `/route Bolzano -> Merano`'
@@ -155,9 +167,24 @@ async function handleRouteCommand(ctx) {
   }
 
   try {
-    await ctx.reply(`🗺️ Suche Verbindung von "${from}" nach "${to}"...`);
+    // Resolve both stops to IDs first (picks best quality match)
+    await ctx.reply(`🗺️ Suche Verbindung von "${fromQuery}" nach "${toQuery}"...`);
     
-    const trips = await planTrip(from, to, { limit: 3 });
+    const fromStop = await resolveStopId(fromQuery);
+    const toStop = await resolveStopId(toQuery);
+    
+    if (!fromStop) {
+      await ctx.reply(`❌ Startort "${fromQuery}" nicht gefunden.\n\nBitte überprüfe die Schreibweise oder nutze /search.`);
+      return;
+    }
+    
+    if (!toStop) {
+      await ctx.reply(`❌ Zielort "${toQuery}" nicht gefunden.\n\nBitte überprüfe die Schreibweise oder nutze /search.`);
+      return;
+    }
+    
+    // Use stop IDs for trip planning
+    const trips = await planTrip(fromStop.id, toStop.id, { limit: 3 });
     
     if (!trips || trips.length === 0) {
       await ctx.reply(
@@ -171,7 +198,7 @@ async function handleRouteCommand(ctx) {
     }
 
     // Show trips
-    let message = `🗺️ Verbindungen: ${from} → ${to}\n\n`;
+    let message = `🗺️ Verbindungen: ${fromStop.name} → ${toStop.name}\n\n`;
     
     trips.forEach((trip, index) => {
       const duration = formatDuration(trip.duration);

@@ -1,0 +1,2 @@
+Verwendung: node route.js <Von> -> <Nach>
+Beispiel: node route.js "Neumarkt" -> "Leifers Schulen"
