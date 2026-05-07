@@ -1,92 +1,49 @@
 ---
 name: suedtirol-fahrplan
-description: "Südtirol Transit Bot - Bus, Zug, Seilbahn Abfragen"
-version: "1.0.0"
-author: "openfugjoobot"
-emoji: "🚌"
-requires:
-  node: ">=16.0.0"
-  bins: ["node", "npm"]
-  env:
-    - TELEGRAM_BOT_TOKEN (Telegram bot token)
-  packages: ["axios", "telegraf", "async-retry"]
-commands:
-  start: "Start the Telegram bot"
-  stop: "Stop the bot"
+description: Use when asked about bus, train, or cable car departures, routes, or stops in South Tyrol (Südtirol/Alto Adige) — including "Wann fährt", "Abfahrt", "next bus", "Verbindung", "Fahrplan", "Haltestelle", Bozen, Meran, Brixen, Bruneck, or any Südtirol locality
+metadata: {"openclaw":{"emoji":"🚌","requires":{"bins":["node"],"env":[]},"always":false}}
+user-invocable: true
+disable-model-invocation: false
 ---
 
-# 🚌 Südtirol Fahrplan Skill
+# 🚌 Südtirol Fahrplan
 
-Transit information for South Tyrol (Südtirol) via the EFA API (südtirolmobil).
-
-## Features
-
-- 🔍 **Stop Search** - Find stops by name (German/Italian)
-- 🚌 **Departures** - Real-time departure board
-- 🗺️ **Route Planning** - Trip suggestions between stops
-- 🤖 **Telegram Bot** - Commands + inline keyboards
-
-## Installation
-
-```bash
-clawhub install suedtirol-fahrplan
-```
-
-## Setup
-
-1. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-2. **Configure environment**
-   ```bash
-   export TELEGRAM_BOT_TOKEN="your-bot-token"
-   ```
-
-3. **Start the bot**
-   ```bash
-   npm start
-   # or
-   node bot.js
-   ```
+Query real-time transit data for South Tyrol via the STA EFA API.
 
 ## Usage
 
-### Telegram Commands
+For ANY transit question about Südtirol, run the CLI tool:
 
-- `/search <Haltestelle>` - Suche nach Haltestellen
-- `/next <Haltestelle>` - Nächste Abfahrten
-- `/route <Von> -> <Nach>` - Verbindung planen
-- `/help` - Hilfe anzeigen
-
-### Examples
-
-- `/search Bolzano` → Zeigt alle Haltestellen in Bolzano
-- `/next Merano Stazione` → Abfahrten vom Meraner Bahnhof
-- `/route Bolzano -> Brixen` → Verbindung Bozen-Brixen
-
-## Architecture
-
-```
-src/
-├── api/           # STA API clients
-│   ├── client.js  # Axios client
-│   ├── stopfinder.js
-│   ├── departures.js
-│   └── trip.js
-├── bot/           # Telegram bot
-│   ├── commands.js
-│   ├── keyboards.js
-│   └── middleware.js
-└── index.js       # Main exports
+```bash
+node "{baseDir}/bin/transit.js" <command> [args...]
 ```
 
-## API Source
+### Commands
 
-- Data: [STA](https://www.sta.bz.it)
-- Endpoint: `https://efa.sta.bz.it/apb/`
+```bash
+# Search stops (German or Italian names)
+node "{baseDir}/bin/transit.js" search <name>
+# → returns JSON array of {id, name, quality}
 
-## License
+# Get next departures (name auto-resolves to best match)
+node "{baseDir}/bin/transit.js" departures <stopName> [--limit 8]
+# → returns JSON array of {line, destination, scheduledTime, realTime, delayMinutes, platformName, isRealTime}
 
-MIT
+# Plan a route between two stops
+node "{baseDir}/bin/transit.js" route <from> <to> [--limit 3]
+# → returns JSON array of {duration, interchanges, legs, departure, arrival}
+```
+
+## Presenting results to the user
+
+- **German output** — always present times and directions in German
+- Format departures: `⏱️ 18:42 (+3min) | Bus 201 → Brixen Stazione | Gleis B`
+- Format routes: `⏱️ 45min (1x Umstieg) | Ab 18:30, An 19:15 | Bus 201 → Zug R123`
+- If no results, suggest trying the other language name (German/Italian)
+- Use `⏱️` for real-time data, `🕐` for scheduled only
+
+## Data source
+
+- **API:** STA EFA (`https://efa.sta.bz.it/apb/`)
+- **Coverage:** Bus, Train, Cable Car — all South Tyrol
+- **Names:** Bilingual DE/IT stop names supported
